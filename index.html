@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语坦克大战 - English Tank Battle</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="start-screen">
+        <h1>英语坦克大战</h1>
+        <p class="subtitle">English Tank Battle</p>
+        <div class="menu">
+            <button id="btn-start" onclick="startGame()">开始游戏</button>
+        </div>
+        <div class="controls-info">
+            <h3>操作说明</h3>
+            <p>WASD - 移动坦克</p>
+            <p>鼠标 - 瞄准方向</p>
+            <p>左键/空格 - 发射炮弹</p>
+            <p>右键/R - 瞄准镜（看清远处单词）</p>
+            <p>击毁敌方单词坦克，学习英语单词！</p>
+        </div>
+    </div>
+
+    <div id="game-ui" style="display:none;">
+        <div id="hud">
+            <div id="health-bar">
+                <div id="health-fill"></div>
+                <span id="health-text">100/100</span>
+            </div>
+            <div id="score-display">得分: <span id="score">0</span></div>
+            <div id="kills-display">击毁: <span id="kills">0</span></div>
+            <div id="ammo-display">弹药: <span id="ammo">30</span></div>
+            <div id="crosshair">+</div>
+        </div>
+        <div id="scope-overlay" style="display:none;">
+            <div class="scope-ring"></div>
+            <div class="scope-cross-h"></div>
+            <div class="scope-cross-v"></div>
+        </div>
+    </div>
+
+    <div id="word-popup" style="display:none;">
+        <div class="word-card">
+            <div class="word-en" id="popup-word"></div>
+            <div class="word-cn" id="popup-meaning"></div>
+        </div>
+    </div>
+
+    <div id="game-over" style="display:none;">
+        <h1>游戏结束</h1>
+        <div id="final-stats"></div>
+        <button onclick="restartGame()">再来一局</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/words.js"></script>
+    <script src="js/scene.js"></script>
+    <script src="js/explosion.js"></script>
+    <script src="js/tank.js"></script>
+    <script src="js/bullet.js"></script>
+    <script src="js/soldier.js"></script>
+    <script src="js/pickup.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
