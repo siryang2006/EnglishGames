@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check \"D:/project/demos/EnglishGames/js/main.js\")",
+      "Bash(node --check \"D:/project/demos/EnglishGames/js/tank.js\")",
+      "Bash(node --check \"D:/project/demos/EnglishGames/js/explosion.js\")",
+      "Bash(node --check \"D:/project/demos/EnglishGames/js/scene.js\")",
+      "Bash(node --check \"D:/project/demos/EnglishGames/js/soldier.js\")"
+    ]
+  }
+}
