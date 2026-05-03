@@ -10,9 +10,11 @@ class Soldier {
         this.patrolCenter = new THREE.Vector3();
         this.patrolAngle = Math.random() * Math.PI * 2;
         this.patrolTimer = 0;
+        this.letter = String.fromCharCode(97 + Math.floor(Math.random() * 26));
 
         this.buildModel();
         this.createHealthBar();
+        if (!isPlayerTeam) this.createLetterLabel();
         scene.add(this.group);
     }
 
@@ -137,6 +139,46 @@ class Soldier {
         const bound = 85;
         this.group.position.x = Math.max(-bound, Math.min(bound, this.group.position.x));
         this.group.position.z = Math.max(-bound, Math.min(bound, this.group.position.z));
+    }
+
+    createLetterLabel() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        this.letterCanvas = canvas;
+        this.letterCtx = canvas.getContext('2d');
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        this.wordSprite = new THREE.Sprite(mat);
+        this.wordSprite.scale.set(2, 2, 1);
+        this.wordSprite.position.y = 2.8;
+        this.group.add(this.wordSprite);
+        this.drawLetterLabel();
+    }
+
+    drawLetterLabel() {
+        const ctx = this.letterCtx;
+        ctx.clearRect(0, 0, 128, 128);
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.beginPath();
+        ctx.arc(64, 64, 55, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ff6666';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(64, 64, 55, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 72px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.letter.toUpperCase(), 64, 62);
+        if (this.wordSprite) this.wordSprite.material.map.needsUpdate = true;
+    }
+
+    updateLetterLabel() {
+        if (this.letterCanvas) this.drawLetterLabel();
     }
 
     dispose() {

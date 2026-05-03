@@ -144,7 +144,7 @@ const UI = {
         this.updateHealth(100, 100);
         this.updateScore(0);
         this.updateKills(0);
-        this.updateAmmo(30);
+        this.updateAmmo(15);
         this.hideCrackScreen();
         document.getElementById('word-popup').style.display = 'none';
         document.getElementById('game-over').style.display = 'none';
