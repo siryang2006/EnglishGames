@@ -3,6 +3,7 @@ class Pickup {
         this.scene = scene;
         this.group = new THREE.Group();
         this.alive = true;
+        this.word = WordManager.getRandomWord();
 
         const boxMat = new THREE.MeshPhongMaterial({ color: 0x2a5a2a });
         const box = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.45, 0.45), boxMat);
@@ -15,21 +16,38 @@ class Pickup {
         );
         this.group.add(stripe);
 
-        const label = new THREE.Mesh(
-            new THREE.BoxGeometry(0.3, 0.15, 0.01),
-            new THREE.MeshBasicMaterial({ color: 0xffffff })
-        );
-        label.position.z = 0.23;
-        this.group.add(label);
-
         this.light = new THREE.PointLight(0xffdd44, 1, 6);
         this.light.position.y = 1;
         this.group.add(this.light);
+
+        this.createWordLabel();
 
         this.group.position.copy(position);
         this.group.position.y = 0.8;
         this.baseY = 0.8;
         scene.add(this.group);
+    }
+
+    createWordLabel() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(4, 4, 248, 56);
+        ctx.fillStyle = '#ffdd44';
+        ctx.font = 'bold 28px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.word.en, 128, 32);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        this.wordSprite = new THREE.Sprite(mat);
+        this.wordSprite.scale.set(2.5, 0.65, 1);
+        this.wordSprite.position.y = 1.2;
+        this.group.add(this.wordSprite);
     }
 
     update(dt) {
@@ -47,11 +65,12 @@ class Pickup {
 const PickupManager = {
     pickups: [],
     scene: null,
+    lastCollectedWord: null,
 
     init(scene) {
         this.scene = scene;
         this.pickups = [];
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 3; i++) {
             this.spawnRandom();
         }
     },
@@ -74,11 +93,12 @@ const PickupManager = {
             p.update(dt);
 
             if (playerPos && playerPos.distanceTo(p.group.position) < 2.5) {
+                this.lastCollectedWord = p.word;
                 p.dispose();
                 this.pickups.splice(i, 1);
                 setTimeout(() => {
                     if (this.scene) this.spawnRandom();
-                }, 10000);
+                }, 20000);
                 return true;
             }
         }
