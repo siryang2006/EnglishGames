@@ -1,7 +1,7 @@
 const Game = {
     player: null,
     enemies: [],
-    maxEnemies: 5,
+    maxEnemies: 3,
     score: 0,
     kills: 0,
     ammo: 30,
@@ -18,6 +18,9 @@ const Game = {
     aimFov: 30,
     normalFov: 60,
     spellLabelTimer: 0,
+    gameTime: 600,
+    maxGameTime: 600,
+    aimPitch: 0,
 
     init() {
         GameScene.init();
@@ -34,6 +37,8 @@ const Game = {
         this.invulnTimer = 0;
         this.respawning = false;
         this.spellLabelTimer = 0;
+        this.gameTime = this.maxGameTime;
+        this.aimPitch = 0;
 
         WordManager.reset();
         BulletManager.clear();
@@ -46,8 +51,8 @@ const Game = {
         for (let i = 0; i < this.maxEnemies; i++) this.spawnEnemy();
 
         SoldierManager.init(GameScene.scene);
-        SoldierManager.spawnFriendly(4);
-        SoldierManager.spawnEnemy(4);
+        SoldierManager.spawnFriendly(2);
+        SoldierManager.spawnEnemy(2);
 
         PickupManager.init(GameScene.scene);
         AnimalManager.init(GameScene.scene);
@@ -55,6 +60,8 @@ const Game = {
         SpellTracker.init(this.player);
 
         UI.reset();
+        const canvas = document.getElementById('gameCanvas');
+        canvas.requestPointerLock();
         this.loop();
     },
 
@@ -65,7 +72,6 @@ const Game = {
         enemy.group.position.set(Math.sin(angle) * dist, 0, Math.cos(angle) * dist);
         enemy.group.rotation.y = Math.random() * Math.PI * 2;
         this.enemies.push(enemy);
-        SpellTracker.reassignEnemyLetters();
     },
 
     loop() {
@@ -76,6 +82,7 @@ const Game = {
         this.handleInput(dt);
         this.updateEnemies(dt);
         this.updateInvulnerability(dt);
+        this.updateTimer(dt);
         SoldierManager.update(dt);
 
         const tankPositions = [this.player.group.position];
@@ -88,17 +95,18 @@ const Game = {
         BulletManager.update(dt);
         ExplosionManager.update(dt);
         UI.update(dt);
+        GameScene.updateParticles(dt);
 
         if (PickupManager.update(dt, this.player ? this.player.group.position : null)) {
-            this.ammo = Math.min(30, this.ammo + 5);
-            UI.updateAmmo(this.ammo);
         }
 
         this.spellLabelTimer += dt;
-        if (this.spellLabelTimer > 0.1 && this.player && SpellTracker.currentWord) {
+        if (this.spellLabelTimer > 0.15 && this.player && SpellTracker.currentWord) {
             this.spellLabelTimer = 0;
-            this.player.updateSpellLabel(SpellTracker.currentWord, SpellTracker.currentIndex);
+            this.player.updateSpellLabel(SpellTracker.currentWord, 0);
         }
+
+        this.updateCorrectIndicator();
 
         this.updateCamera(dt);
         GameScene.renderer.render(GameScene.scene, GameScene.camera);
@@ -115,9 +123,10 @@ const Game = {
         if (InputManager.isKeyDown('KeyD')) moveX = 1;
 
         this.aiming = InputManager.rightMouseDown || InputManager.isKeyDown('KeyR');
-        const sensitivity = this.aiming ? 0.0015 : 0.003;
+        const sensitivity = this.aiming ? 0.002 : 0.003;
         const mouseDelta = InputManager.consumeMouseDelta();
         this.playerYaw -= mouseDelta.dx * sensitivity;
+        this.aimPitch = Math.max(-0.5, Math.min(0.8, (this.aimPitch || 0) - mouseDelta.dy * sensitivity * 0.5));
 
         const targetFov = this.aiming ? this.aimFov : this.normalFov;
         GameScene.camera.fov += (targetFov - GameScene.camera.fov) * 8 * dt;
@@ -179,7 +188,10 @@ const Game = {
 
     playerFire() {
         const p = this.player;
-        BulletManager.fire(GameScene.scene, p.getBarrelTip(), p.getBarrelDirection(), true);
+        const dir = p.getBarrelDirection();
+        dir.y += this.aimPitch || 0;
+        dir.normalize();
+        BulletManager.fire(GameScene.scene, p.getBarrelTip(), dir, true);
     },
 
     updateEnemies(dt) {
@@ -250,6 +262,20 @@ const Game = {
             }
         }
 
+        for (const animal of AnimalManager.animals) {
+            if (!animal.alive) continue;
+            if (bPos.distanceTo(animal.group.position) < 1.5) {
+                animal.takeDamage(30);
+                b.dispose();
+                ExplosionManager.create(GameScene.scene, bPos.clone(), false);
+                if (!animal.alive) {
+                    this.onEntityKilled(animal);
+                    animal.dispose();
+                }
+                return;
+            }
+        }
+
         this.checkBulletVsEnvironment(b, bPos);
     },
 
@@ -280,14 +306,23 @@ const Game = {
     checkBulletVsEnvironment(b, bPos) {
         for (const barrel of GameScene.barrels) {
             if (!barrel.alive) continue;
-            if (bPos.distanceTo(barrel.position) < 1.5) { b.dispose(); this.explodeBarrel(barrel); return; }
+            if (bPos.distanceTo(barrel.position) < 1.5) { b.dispose(); this.explodeBarrel(barrel); this.onDestructibleHit(barrel); return; }
+        }
+        for (const rock of GameScene.rocks) {
+            if (!rock.alive) continue;
+            if (bPos.distanceTo(rock.position) < rock.radius + 0.5) {
+                rock.health -= 40; b.dispose();
+                ExplosionManager.create(GameScene.scene, bPos.clone(), false);
+                if (rock.health <= 0) { ExplosionManager.create(GameScene.scene, rock.position.clone(), false); this.onDestructibleHit(rock); GameScene.removeDestructible(rock); }
+                return;
+            }
         }
         for (const tree of GameScene.trees) {
             if (!tree.alive) continue;
             if (bPos.distanceTo(tree.position) < tree.radius + 0.5) {
                 tree.health -= 30; b.dispose();
                 ExplosionManager.create(GameScene.scene, bPos.clone(), false);
-                if (tree.health <= 0) { ExplosionManager.create(GameScene.scene, tree.position.clone(), false); GameScene.removeDestructible(tree); }
+                if (tree.health <= 0) { ExplosionManager.create(GameScene.scene, tree.position.clone(), false); this.onDestructibleHit(tree); GameScene.removeDestructible(tree); }
                 return;
             }
         }
@@ -296,7 +331,7 @@ const Game = {
             if (bPos.distanceTo(building.position) < building.radius) {
                 building.health -= 50; b.dispose();
                 ExplosionManager.create(GameScene.scene, bPos.clone(), false);
-                if (building.health <= 0) { ExplosionManager.create(GameScene.scene, building.position.clone(), true); this.triggerShake(0.4, 0.3); GameScene.removeDestructible(building); }
+                if (building.health <= 0) { ExplosionManager.create(GameScene.scene, building.position.clone(), true); this.triggerShake(0.4, 0.3); this.onDestructibleHit(building); GameScene.removeDestructible(building); }
                 return;
             }
         }
@@ -305,9 +340,35 @@ const Game = {
             if (bPos.distanceTo(bunker.position) < bunker.radius) {
                 bunker.health -= 50; b.dispose();
                 ExplosionManager.create(GameScene.scene, bPos.clone(), false);
-                if (bunker.health <= 0) { ExplosionManager.create(GameScene.scene, bunker.position.clone(), true); this.triggerShake(0.3, 0.2); GameScene.removeDestructible(bunker); }
+                if (bunker.health <= 0) { ExplosionManager.create(GameScene.scene, bunker.position.clone(), true); this.triggerShake(0.3, 0.2); this.onDestructibleHit(bunker); GameScene.removeDestructible(bunker); }
                 return;
             }
+        }
+        for (const ship of GameScene.ships) {
+            if (!ship.alive) continue;
+            if (bPos.distanceTo(ship.position) < ship.radius) {
+                ship.health -= 50; b.dispose();
+                ExplosionManager.create(GameScene.scene, bPos.clone(), false);
+                if (ship.health <= 0) { ExplosionManager.create(GameScene.scene, ship.position.clone(), true); this.triggerShake(0.4, 0.3); this.onDestructibleHit(ship); GameScene.removeDestructible(ship); }
+                return;
+            }
+        }
+    },
+
+    onDestructibleHit(obj) {
+        if (!obj.word) return;
+        const result = SpellTracker.checkWord(obj.word);
+        if (result === 'correct') {
+            this.score += 100;
+            UI.updateScore(this.score);
+            UI.showScorePopup(100);
+            UI.showWordPopup(obj.word);
+            SpellTracker.speakWord(obj.word);
+            SpellTracker.completed++;
+            this.triggerShake(0.2, 0.15);
+            setTimeout(() => { if (this.running) SpellTracker.nextWord(); }, 1500);
+        } else {
+            UI.showWrongPopup(obj.word.en, SpellTracker.currentWord ? SpellTracker.currentWord.en : '');
         }
     },
 
@@ -317,20 +378,17 @@ const Game = {
         this.kills++;
         UI.updateKills(this.kills);
 
-        const result = SpellTracker.checkLetter(enemy.letter);
+        const result = SpellTracker.checkWord(enemy.word);
         if (result === 'correct') {
-            this.score += 10;
+            this.score += 100;
             UI.updateScore(this.score);
-            SpellTracker.speakWord(SpellTracker.currentWord);
-        } else if (result === 'complete') {
-            this.score += 110;
-            UI.updateScore(this.score);
+            UI.showScorePopup(100);
+            UI.showWordPopup(enemy.word);
+            SpellTracker.speakWord(enemy.word);
             SpellTracker.completed++;
-            UI.showWordPopup(SpellTracker.currentWord);
-            SpellTracker.speakWord(SpellTracker.currentWord);
             setTimeout(() => { if (this.running) SpellTracker.nextWord(); }, 1500);
         } else {
-            SpellTracker.speakWord(SpellTracker.currentWord);
+            UI.showWrongPopup(enemy.word ? enemy.word.en : '', SpellTracker.currentWord ? SpellTracker.currentWord.en : '');
         }
 
         enemy.dispose();
@@ -339,20 +397,17 @@ const Game = {
     },
 
     onEntityKilled(entity) {
-        const result = SpellTracker.checkLetter(entity.letter);
+        const result = SpellTracker.checkWord(entity.word);
         if (result === 'correct') {
-            this.score += 10;
+            this.score += 100;
             UI.updateScore(this.score);
-            SpellTracker.speakWord(SpellTracker.currentWord);
-        } else if (result === 'complete') {
-            this.score += 110;
-            UI.updateScore(this.score);
+            UI.showScorePopup(100);
+            UI.showWordPopup(entity.word);
+            SpellTracker.speakWord(entity.word);
             SpellTracker.completed++;
-            UI.showWordPopup(SpellTracker.currentWord);
-            SpellTracker.speakWord(SpellTracker.currentWord);
             setTimeout(() => { if (this.running) SpellTracker.nextWord(); }, 1500);
         } else {
-            SpellTracker.speakWord(SpellTracker.currentWord);
+            UI.showWrongPopup(entity.word ? entity.word.en : '', SpellTracker.currentWord ? SpellTracker.currentWord.en : '');
         }
     },
 
@@ -417,6 +472,57 @@ const Game = {
         }
     },
 
+    updateTimer(dt) {
+        this.gameTime -= dt;
+        if (this.gameTime <= 0) {
+            this.gameTime = 0;
+            this.gameOver();
+        }
+        const minutes = Math.floor(this.gameTime / 60);
+        const seconds = Math.floor(this.gameTime % 60);
+        const timerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        document.getElementById('timer').textContent = timerText;
+        const timerDisplay = document.getElementById('timer-display');
+        if (this.gameTime < 60) {
+            timerDisplay.classList.add('warning');
+        } else {
+            timerDisplay.classList.remove('warning');
+        }
+    },
+
+    updateCorrectIndicator() {
+        if (!this.correctIndicator) {
+            const ringGeo = new THREE.RingGeometry(2.5, 3.0, 32);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x44ff44, transparent: true, opacity: 0.6, side: THREE.DoubleSide
+            });
+            this.correctIndicator = new THREE.Mesh(ringGeo, ringMat);
+            this.correctIndicator.rotation.x = -Math.PI / 2;
+            GameScene.scene.add(this.correctIndicator);
+
+            const arrowGeo = new THREE.ConeGeometry(0.5, 1.5, 8);
+            const arrowMat = new THREE.MeshBasicMaterial({ color: 0x44ff44, transparent: true, opacity: 0.7 });
+            this.correctArrow = new THREE.Mesh(arrowGeo, arrowMat);
+            GameScene.scene.add(this.correctArrow);
+        }
+
+        const target = SpellTracker.correctTarget;
+        if (target && target.alive) {
+            const pos = target.group ? target.group.position : target.position;
+            this.correctIndicator.visible = true;
+            this.correctArrow.visible = true;
+            this.correctIndicator.position.set(pos.x, 0.15, pos.z);
+            this.correctIndicator.rotation.z = Date.now() * 0.002;
+            const pulse = 0.5 + Math.sin(Date.now() * 0.005) * 0.2;
+            this.correctIndicator.material.opacity = pulse;
+            this.correctArrow.position.set(pos.x, 8 + Math.sin(Date.now() * 0.004) * 1, pos.z);
+            this.correctArrow.rotation.x = Math.PI;
+        } else {
+            this.correctIndicator.visible = false;
+            this.correctArrow.visible = false;
+        }
+    },
+
     triggerShake(intensity, duration) {
         this.screenShake.intensity = Math.max(this.screenShake.intensity, intensity);
         this.screenShake.duration = Math.max(this.screenShake.duration, duration);
@@ -428,6 +534,7 @@ const Game = {
         const playerPos = this.player.group.position;
         const baseOffset = this.aiming ? this.cameraOffsetAim : this.cameraOffset;
         const offset = baseOffset.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerYaw);
+        offset.y += (this.aimPitch || 0) * -3;
         const targetCamPos = playerPos.clone().add(offset);
         GameScene.camera.position.lerp(targetCamPos, (this.aiming ? 8 : 5) * dt);
 
@@ -441,7 +548,9 @@ const Game = {
         }
 
         const lookAt = playerPos.clone().add(this.cameraLookOffset);
-        lookAt.add(new THREE.Vector3(0, 0, -10).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerYaw));
+        const forwardDir = new THREE.Vector3(0, 0, -10).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerYaw);
+        forwardDir.y += (this.aimPitch || 0) * 10;
+        lookAt.add(forwardDir);
         GameScene.camera.lookAt(lookAt);
     },
 
@@ -463,6 +572,12 @@ const Game = {
         AnimalManager.clear();
         AircraftManager.clear();
         SpellTracker.reset();
+        if (this.correctIndicator) {
+            GameScene.scene.remove(this.correctIndicator);
+            GameScene.scene.remove(this.correctArrow);
+            this.correctIndicator = null;
+            this.correctArrow = null;
+        }
     }
 };
 
@@ -479,7 +594,9 @@ function restartGame() {
     toRemove.forEach(obj => GameScene.scene.remove(obj));
     GameScene.createLights();
     GameScene.createGround();
+    GameScene.createOcean();
     GameScene.createSkyDome();
     GameScene.createEnvironment();
+    GameScene.createDustParticles();
     Game.start();
 }

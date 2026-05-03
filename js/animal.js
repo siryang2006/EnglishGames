@@ -4,13 +4,14 @@ class Animal {
         this.type = type;
         this.group = new THREE.Group();
         this.alive = true;
+        this.health = 30;
         this.speed = type === 'deer' ? 5 : 7;
         this.runTimer = 0;
         this.runDir = new THREE.Vector3();
         this.idleTimer = 2 + Math.random() * 4;
         this.state = 'idle';
         this.word = WordManager.getRandomWord();
-        this.letter = String.fromCharCode(97 + Math.floor(Math.random() * 26));
+        this.letter = this.word.en;
 
         this.buildModel();
         this.createLetterLabel();
@@ -109,7 +110,7 @@ class Animal {
 
     createLetterLabel() {
         const canvas = document.createElement('canvas');
-        canvas.width = 128;
+        canvas.width = 512;
         canvas.height = 128;
         this.letterCanvas = canvas;
         this.letterCtx = canvas.getContext('2d');
@@ -117,7 +118,7 @@ class Animal {
         const texture = new THREE.CanvasTexture(canvas);
         const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
         this.wordSprite = new THREE.Sprite(mat);
-        this.wordSprite.scale.set(2, 2, 1);
+        this.wordSprite.scale.set(4, 1.0, 1);
         this.wordSprite.position.y = this.type === 'deer' ? 2.8 : 1.8;
         this.group.add(this.wordSprite);
         this.drawLetterLabel();
@@ -125,21 +126,27 @@ class Animal {
 
     drawLetterLabel() {
         const ctx = this.letterCtx;
-        ctx.clearRect(0, 0, 128, 128);
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.clearRect(0, 0, 512, 128);
+        ctx.fillStyle = 'rgba(0,0,0,0.88)';
         ctx.beginPath();
-        ctx.arc(64, 64, 55, 0, Math.PI * 2);
+        ctx.moveTo(20, 0); ctx.lineTo(492, 0);
+        ctx.quadraticCurveTo(512, 0, 512, 20);
+        ctx.lineTo(512, 108); ctx.quadraticCurveTo(512, 128, 492, 128);
+        ctx.lineTo(20, 128); ctx.quadraticCurveTo(0, 128, 0, 108);
+        ctx.lineTo(0, 20); ctx.quadraticCurveTo(0, 0, 20, 0);
+        ctx.closePath();
         ctx.fill();
         ctx.strokeStyle = '#88cc44';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(64, 64, 55, 0, Math.PI * 2);
+        ctx.lineWidth = 4;
         ctx.stroke();
+
+        const displayWord = this.word ? this.word.en : (this.letter || '');
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 72px Arial';
+        const fontSize = Math.min(72, Math.floor(440 / Math.max(displayWord.length, 1)));
+        ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this.letter.toUpperCase(), 64, 62);
+        ctx.fillText(displayWord, 256, 64);
         if (this.wordSprite) this.wordSprite.material.map.needsUpdate = true;
     }
 
@@ -204,6 +211,11 @@ class Animal {
         return false;
     }
 
+    takeDamage(amount) {
+        this.health = Math.max(0, this.health - amount);
+        if (this.health <= 0) this.alive = false;
+    }
+
     dispose() {
         this.alive = false;
         this.scene.remove(this.group);
@@ -217,7 +229,7 @@ const AnimalManager = {
     init(scene) {
         this.scene = scene;
         this.animals = [];
-        const types = ['deer', 'deer', 'deer', 'boar', 'boar', 'boar'];
+        const types = ['deer', 'deer', 'boar', 'boar'];
         types.forEach(type => {
             const a = new Animal(scene, type);
             const angle = Math.random() * Math.PI * 2;

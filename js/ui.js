@@ -1,5 +1,7 @@
 const UI = {
     wordPopupTimer: 0,
+    wrongPopupTimer: 0,
+    scorePopupTimer: 0,
     crackOverlay: null,
 
     updateHealth(health, maxHealth) {
@@ -32,8 +34,33 @@ const UI = {
         const popup = document.getElementById('word-popup');
         document.getElementById('popup-word').textContent = word.en;
         document.getElementById('popup-meaning').textContent = word.cn;
+        const card = popup.querySelector('.word-card');
+        card.className = 'word-card correct';
         popup.style.display = 'block';
         this.wordPopupTimer = 2.0;
+    },
+
+    showScorePopup(points) {
+        const popup = document.getElementById('score-popup');
+        const text = document.getElementById('score-fly-text');
+        text.textContent = '+' + points;
+        popup.style.display = 'block';
+        text.style.animation = 'none';
+        void text.offsetWidth;
+        text.style.animation = '';
+        this.scorePopupTimer = 1.3;
+    },
+
+    showWrongPopup(hitWord, correctWord) {
+        const popup = document.getElementById('wrong-popup');
+        document.getElementById('wrong-text').textContent =
+            hitWord + ' ≠ ' + correctWord;
+        popup.style.display = 'block';
+        const card = popup.querySelector('.wrong-card');
+        card.style.animation = 'none';
+        void card.offsetWidth;
+        card.style.animation = '';
+        this.wrongPopupTimer = 1.0;
     },
 
     showDamageFlash() {
@@ -125,10 +152,11 @@ const UI = {
     showGameOver(score, kills) {
         document.getElementById('game-ui').style.display = 'none';
         document.getElementById('game-over').style.display = 'flex';
+        const wordsLearned = typeof SpellTracker !== 'undefined' ? SpellTracker.completed : 0;
         document.getElementById('final-stats').innerHTML =
             `最终得分: ${score}<br>` +
             `击毁敌方: ${kills} 辆<br>` +
-            `学习单词: ${kills} 个`;
+            `学习单词: ${wordsLearned} 个`;
     },
 
     update(dt) {
@@ -138,16 +166,33 @@ const UI = {
                 document.getElementById('word-popup').style.display = 'none';
             }
         }
+        if (this.wrongPopupTimer > 0) {
+            this.wrongPopupTimer -= dt;
+            if (this.wrongPopupTimer <= 0) {
+                document.getElementById('wrong-popup').style.display = 'none';
+            }
+        }
+        if (this.scorePopupTimer > 0) {
+            this.scorePopupTimer -= dt;
+            if (this.scorePopupTimer <= 0) {
+                document.getElementById('score-popup').style.display = 'none';
+            }
+        }
     },
 
     reset() {
         this.updateHealth(100, 100);
         this.updateScore(0);
         this.updateKills(0);
-        this.updateAmmo(15);
+        this.updateAmmo('∞');
         this.hideCrackScreen();
         document.getElementById('word-popup').style.display = 'none';
+        document.getElementById('wrong-popup').style.display = 'none';
+        document.getElementById('score-popup').style.display = 'none';
         document.getElementById('game-over').style.display = 'none';
         document.getElementById('game-ui').style.display = 'block';
+        document.getElementById('timer').textContent = '10:00';
+        const timerDisplay = document.getElementById('timer-display');
+        if (timerDisplay) timerDisplay.classList.remove('warning');
     }
 };

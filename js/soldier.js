@@ -10,11 +10,16 @@ class Soldier {
         this.patrolCenter = new THREE.Vector3();
         this.patrolAngle = Math.random() * Math.PI * 2;
         this.patrolTimer = 0;
-        this.letter = String.fromCharCode(97 + Math.floor(Math.random() * 26));
+        this.word = null;
+        this.letter = '';
 
         this.buildModel();
         this.createHealthBar();
-        if (!isPlayerTeam) this.createLetterLabel();
+        if (!isPlayerTeam) {
+            this.word = WordManager.getRandomWord();
+            this.letter = this.word.en;
+            this.createLetterLabel();
+        }
         scene.add(this.group);
     }
 
@@ -67,12 +72,12 @@ class Soldier {
 
         const gunMat = new THREE.MeshPhongMaterial({ color: 0x222222 });
         const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.6), gunMat);
-        gunBody.position.set(-0.32, 1.2, -0.45);
+        gunBody.position.set(-0.32, 1.35, -0.45);
         gunBody.castShadow = true;
         this.group.add(gunBody);
 
         const gunStock = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.15, 0.12), new THREE.MeshPhongMaterial({ color: 0x553311 }));
-        gunStock.position.set(-0.32, 1.15, -0.15);
+        gunStock.position.set(-0.32, 1.30, -0.15);
         this.group.add(gunStock);
     }
 
@@ -143,7 +148,7 @@ class Soldier {
 
     createLetterLabel() {
         const canvas = document.createElement('canvas');
-        canvas.width = 128;
+        canvas.width = 512;
         canvas.height = 128;
         this.letterCanvas = canvas;
         this.letterCtx = canvas.getContext('2d');
@@ -151,7 +156,7 @@ class Soldier {
         const texture = new THREE.CanvasTexture(canvas);
         const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
         this.wordSprite = new THREE.Sprite(mat);
-        this.wordSprite.scale.set(2, 2, 1);
+        this.wordSprite.scale.set(4, 1.0, 1);
         this.wordSprite.position.y = 2.8;
         this.group.add(this.wordSprite);
         this.drawLetterLabel();
@@ -159,21 +164,27 @@ class Soldier {
 
     drawLetterLabel() {
         const ctx = this.letterCtx;
-        ctx.clearRect(0, 0, 128, 128);
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.clearRect(0, 0, 512, 128);
+        ctx.fillStyle = 'rgba(0,0,0,0.88)';
         ctx.beginPath();
-        ctx.arc(64, 64, 55, 0, Math.PI * 2);
+        ctx.moveTo(20, 0); ctx.lineTo(492, 0);
+        ctx.quadraticCurveTo(512, 0, 512, 20);
+        ctx.lineTo(512, 108); ctx.quadraticCurveTo(512, 128, 492, 128);
+        ctx.lineTo(20, 128); ctx.quadraticCurveTo(0, 128, 0, 108);
+        ctx.lineTo(0, 20); ctx.quadraticCurveTo(0, 0, 20, 0);
+        ctx.closePath();
         ctx.fill();
         ctx.strokeStyle = '#ff6666';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(64, 64, 55, 0, Math.PI * 2);
+        ctx.lineWidth = 4;
         ctx.stroke();
+
+        const displayWord = this.word ? this.word.en : (this.letter || '');
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 72px Arial';
+        const fontSize = Math.min(72, Math.floor(440 / Math.max(displayWord.length, 1)));
+        ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this.letter.toUpperCase(), 64, 62);
+        ctx.fillText(displayWord, 256, 64);
         if (this.wordSprite) this.wordSprite.material.map.needsUpdate = true;
     }
 

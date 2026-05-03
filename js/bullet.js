@@ -3,10 +3,10 @@ class Bullet {
         this.scene = scene;
         this.isPlayer = isPlayer;
         this.alive = true;
-        this.speed = 50;
+        this.speed = 60;
         this.direction = direction.normalize();
         this.age = 0;
-        this.maxAge = 3;
+        this.maxAge = 4;
 
         const color = isPlayer ? 0x44ff44 : 0xff4444;
 
@@ -46,7 +46,7 @@ class Bullet {
         this.mesh.position.add(move);
 
         // add trail particle
-        if (Math.random() < 0.6) {
+        if (Math.random() < 0.25) {
             const trailGeo = new THREE.SphereGeometry(0.06, 4, 4);
             const trailMat = new THREE.MeshBasicMaterial({
                 color: this.isPlayer ? 0x88ff88 : 0xff8888,

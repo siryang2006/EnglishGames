@@ -23,7 +23,8 @@ class Tank {
         this.createHealthBar();
 
         if (!isPlayer) {
-            this.letter = String.fromCharCode(97 + Math.floor(Math.random() * 26));
+            this.word = WordManager.getRandomWord();
+            this.letter = this.word.en;
             this.createLetterLabel();
         } else {
             this.createPlayerIndicator();
@@ -137,7 +138,7 @@ class Tank {
 
     createLetterLabel() {
         const canvas = document.createElement('canvas');
-        canvas.width = 256;
+        canvas.width = 1024;
         canvas.height = 256;
         this.letterCanvas = canvas;
         this.letterCtx = canvas.getContext('2d');
@@ -145,7 +146,7 @@ class Tank {
         const texture = new THREE.CanvasTexture(canvas);
         const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
         this.wordSprite = new THREE.Sprite(mat);
-        this.wordSprite.scale.set(4, 4, 1);
+        this.wordSprite.scale.set(7, 1.75, 1);
         this.wordSprite.position.y = 5.5;
         this.group.add(this.wordSprite);
         this.drawLetterLabel();
@@ -153,28 +154,34 @@ class Tank {
 
     drawLetterLabel() {
         const ctx = this.letterCtx;
-        const w = 256, h = 256;
+        const w = 1024, h = 256;
         ctx.clearRect(0, 0, w, h);
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.88)';
         ctx.beginPath();
-        ctx.arc(128, 128, 110, 0, Math.PI * 2);
+        ctx.moveTo(32, 0);
+        ctx.lineTo(w - 32, 0);
+        ctx.quadraticCurveTo(w, 0, w, 32);
+        ctx.lineTo(w, h - 32);
+        ctx.quadraticCurveTo(w, h, w - 32, h);
+        ctx.lineTo(32, h);
+        ctx.quadraticCurveTo(0, h, 0, h - 32);
+        ctx.lineTo(0, 32);
+        ctx.quadraticCurveTo(0, 0, 32, 0);
+        ctx.closePath();
         ctx.fill();
 
         ctx.strokeStyle = '#ff4444';
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.arc(128, 128, 110, 0, Math.PI * 2);
+        ctx.lineWidth = 6;
         ctx.stroke();
 
-        ctx.shadowColor = '#fff';
-        ctx.shadowBlur = 15;
+        const displayWord = this.word ? this.word.en : (this.letter || '');
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 140px Arial';
+        const fontSize = Math.min(120, Math.floor(880 / Math.max(displayWord.length, 1)));
+        ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this.letter.toUpperCase(), 128, 125);
-        ctx.shadowBlur = 0;
+        ctx.fillText(displayWord, w / 2, h / 2);
 
         if (this.wordSprite) {
             this.wordSprite.material.map.needsUpdate = true;
@@ -197,8 +204,8 @@ class Tank {
         const texture = new THREE.CanvasTexture(canvas);
         const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
         this.spellSprite = new THREE.Sprite(mat);
-        this.spellSprite.scale.set(10, 2.5, 1);
-        this.spellSprite.position.y = 5.5;
+        this.spellSprite.scale.set(7, 1.8, 1);
+        this.spellSprite.position.y = 5.0;
         this.group.add(this.spellSprite);
 
         if (word) this.drawSpellLabel(word, index);
@@ -215,9 +222,17 @@ class Tank {
         const w = 1024, h = 256;
         ctx.clearRect(0, 0, w, h);
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
         this.drawRoundRect(ctx, 8, 8, w - 16, h - 16, 20);
         ctx.fill();
+
+        const grd = ctx.createLinearGradient(8, 8, 8, h - 8);
+        grd.addColorStop(0, 'rgba(68, 170, 255, 0.3)');
+        grd.addColorStop(1, 'rgba(68, 170, 255, 0.05)');
+        ctx.fillStyle = grd;
+        this.drawRoundRect(ctx, 8, 8, w - 16, h - 16, 20);
+        ctx.fill();
+
         ctx.strokeStyle = '#44aaff';
         ctx.lineWidth = 4;
         this.drawRoundRect(ctx, 8, 8, w - 16, h - 16, 20);
@@ -225,41 +240,17 @@ class Tank {
 
         if (!word) return;
 
-        const letters = word.en.split('');
-        const fontSize = Math.min(90, Math.floor(800 / Math.max(letters.length, 1)));
-        ctx.font = `bold ${fontSize}px Arial`;
+        const pulse = Math.sin(Date.now() * 0.005) * 0.15 + 0.85;
+
+        ctx.fillStyle = `rgba(255, 255, 100, ${pulse})`;
+        ctx.font = 'bold 100px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.fillText(word.cn, w / 2, 100);
 
-        const totalW = letters.length * (fontSize * 0.7);
-        const startX = (w - totalW) / 2 + fontSize * 0.35;
-        const letterY = 100;
-
-        for (let i = 0; i < letters.length; i++) {
-            const x = startX + i * (fontSize * 0.7);
-            if (letters[i] === ' ') continue;
-
-            if (i < index) {
-                ctx.shadowColor = '#0f0';
-                ctx.shadowBlur = 12;
-                ctx.fillStyle = '#44ff44';
-            } else if (i === index) {
-                const pulse = Math.sin(Date.now() * 0.008) * 0.3 + 0.7;
-                ctx.shadowColor = '#ff0';
-                ctx.shadowBlur = 15;
-                ctx.fillStyle = `rgba(255, 255, 100, ${pulse})`;
-            } else {
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = '#666666';
-            }
-            ctx.fillText(letters[i].toUpperCase(), x, letterY);
-        }
-        ctx.shadowBlur = 0;
-
-        ctx.fillStyle = '#88ccff';
-        ctx.font = 'bold 42px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(word.cn, w / 2, 200);
+        ctx.fillStyle = 'rgba(180, 220, 255, 0.8)';
+        ctx.font = '40px Arial';
+        ctx.fillText(word.ph || '', w / 2, 200);
 
         if (this.spellSprite) {
             this.spellSprite.material.map.needsUpdate = true;

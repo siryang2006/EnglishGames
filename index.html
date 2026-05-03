@@ -16,7 +16,8 @@
         <div class="controls-info">
             <h3>操作说明</h3>
             <p>WASD - 移动坦克</p>
-            <p>鼠标 - 瞄准方向</p>
+            <p>鼠标左右 - 水平瞄准</p>
+            <p>鼠标上下 - 垂直瞄准（打击空中目标）</p>
             <p>左键/空格 - 发射炮弹</p>
             <p>右键/R - 瞄准镜（看清远处字母）</p>
             <p>按顺序击中单词字母的敌人来拼写单词！</p>
@@ -31,12 +32,14 @@
             </div>
             <div id="score-display">得分: <span id="score">0</span></div>
             <div id="kills-display">击毁: <span id="kills">0</span></div>
-            <div id="ammo-display">弹药: <span id="ammo">30</span></div>
+            <div id="ammo-display">弹药: <span id="ammo">∞</span></div>
+            <div id="timer-display">时间: <span id="timer">10:00</span></div>
             <div id="crosshair">+</div>
         </div>
         <div id="hotkeys">
             <div>W/A/S/D 移动</div>
-            <div>鼠标 瞄准</div>
+            <div>鼠标左右 水平瞄准</div>
+            <div>鼠标上下 垂直瞄准</div>
             <div>左键/空格 射击</div>
             <div>右键/R 瞄准镜</div>
         </div>
@@ -52,6 +55,17 @@
             <div class="word-en" id="popup-word"></div>
             <div class="word-cn" id="popup-meaning"></div>
         </div>
+    </div>
+
+    <div id="wrong-popup" style="display:none;">
+        <div class="wrong-card">
+            <div class="wrong-x">✗</div>
+            <div class="wrong-text" id="wrong-text"></div>
+        </div>
+    </div>
+
+    <div id="score-popup" style="display:none;">
+        <div class="score-fly" id="score-fly-text"></div>
     </div>
 
     <div id="game-over" style="display:none;">

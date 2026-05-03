@@ -6,7 +6,8 @@ class Aircraft {
         this.health = 40;
         this.speed = 15 + Math.random() * 10;
         this.altitude = 20 + Math.random() * 15;
-        this.letter = String.fromCharCode(97 + Math.floor(Math.random() * 26));
+        this.word = WordManager.getRandomWord();
+        this.letter = this.word.en;
         this.falling = false;
         this.fallSpeed = 0;
         this.fallRotSpeed = 0;
@@ -61,7 +62,7 @@ class Aircraft {
 
     createLetterLabel() {
         const canvas = document.createElement('canvas');
-        canvas.width = 128;
+        canvas.width = 512;
         canvas.height = 128;
         this.letterCanvas = canvas;
         this.letterCtx = canvas.getContext('2d');
@@ -69,7 +70,7 @@ class Aircraft {
         const texture = new THREE.CanvasTexture(canvas);
         const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
         this.wordSprite = new THREE.Sprite(mat);
-        this.wordSprite.scale.set(3, 3, 1);
+        this.wordSprite.scale.set(5, 1.25, 1);
         this.wordSprite.position.y = 2.5;
         this.group.add(this.wordSprite);
         this.drawLetterLabel();
@@ -77,21 +78,27 @@ class Aircraft {
 
     drawLetterLabel() {
         const ctx = this.letterCtx;
-        ctx.clearRect(0, 0, 128, 128);
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.clearRect(0, 0, 512, 128);
+        ctx.fillStyle = 'rgba(0,0,0,0.88)';
         ctx.beginPath();
-        ctx.arc(64, 64, 55, 0, Math.PI * 2);
+        ctx.moveTo(20, 0); ctx.lineTo(492, 0);
+        ctx.quadraticCurveTo(512, 0, 512, 20);
+        ctx.lineTo(512, 108); ctx.quadraticCurveTo(512, 128, 492, 128);
+        ctx.lineTo(20, 128); ctx.quadraticCurveTo(0, 128, 0, 108);
+        ctx.lineTo(0, 20); ctx.quadraticCurveTo(0, 0, 20, 0);
+        ctx.closePath();
         ctx.fill();
         ctx.strokeStyle = '#ffaa22';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(64, 64, 55, 0, Math.PI * 2);
+        ctx.lineWidth = 4;
         ctx.stroke();
+
+        const displayWord = this.word ? this.word.en : (this.letter || '');
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 72px Arial';
+        const fontSize = Math.min(72, Math.floor(440 / Math.max(displayWord.length, 1)));
+        ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this.letter.toUpperCase(), 64, 62);
+        ctx.fillText(displayWord, 256, 64);
         if (this.wordSprite) this.wordSprite.material.map.needsUpdate = true;
     }
 
@@ -170,7 +177,6 @@ const AircraftManager = {
         if (this.spawnTimer <= 0 && this.aircraft.filter(a => a.alive || a.falling).length < 3) {
             this.spawn();
             this.spawnTimer = 8 + Math.random() * 10;
-            if (typeof SpellTracker !== 'undefined') SpellTracker.reassignEnemyLetters();
         }
 
         for (let i = this.aircraft.length - 1; i >= 0; i--) {

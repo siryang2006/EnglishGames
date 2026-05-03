@@ -17,18 +17,18 @@ const InputManager = {
 
         document.addEventListener('mousedown', (e) => {
             if (e.button === 0) this.mouseDown = true;
-            if (e.button === 2) this.rightMouseDown = true;
+            if (e.button === 2) { this.rightMouseDown = true; e.preventDefault(); }
         });
 
         document.addEventListener('mouseup', (e) => {
             if (e.button === 0) this.mouseDown = false;
-            if (e.button === 2) this.rightMouseDown = false;
+            if (e.button === 2) { this.rightMouseDown = false; e.preventDefault(); }
         });
 
         document.addEventListener('contextmenu', (e) => e.preventDefault());
 
         document.addEventListener('mousemove', (e) => {
-            if (this.locked) {
+            if (this.locked || (typeof Game !== 'undefined' && Game.running)) {
                 this.mouse.dx += e.movementX || 0;
                 this.mouse.dy += e.movementY || 0;
             }
@@ -43,6 +43,13 @@ const InputManager = {
 
         document.addEventListener('pointerlockchange', () => {
             this.locked = document.pointerLockElement === canvas;
+            if (!this.locked && typeof Game !== 'undefined' && Game.running) {
+                setTimeout(() => {
+                    if (!this.locked && typeof Game !== 'undefined' && Game.running) {
+                        canvas.requestPointerLock();
+                    }
+                }, 100);
+            }
         });
     },
 

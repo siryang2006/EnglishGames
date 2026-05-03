@@ -21,7 +21,7 @@ class Explosion {
     }
 
     createBigExplosion(pos) {
-        for (let i = 0; i < 150; i++) {
+        for (let i = 0; i < 60; i++) {
             const size = 0.15 + Math.random() * 0.45;
             const geo = new THREE.SphereGeometry(size, 4, 4);
             const hue = Math.random() * 0.12;
@@ -48,7 +48,7 @@ class Explosion {
             this.particles.push(mesh);
         }
 
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 20; i++) {
             const size = 0.6 + Math.random() * 1.2;
             const geo = new THREE.SphereGeometry(size, 6, 6);
             const gray = 0.15 + Math.random() * 0.25;
@@ -76,7 +76,7 @@ class Explosion {
             this.particles.push(mesh);
         }
 
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 15; i++) {
             const geo = new THREE.SphereGeometry(0.05, 3, 3);
             const mat = new THREE.MeshBasicMaterial({
                 color: new THREE.Color().setHSL(0.12, 1, 0.8 + Math.random() * 0.2),
@@ -102,7 +102,7 @@ class Explosion {
             this.particles.push(mesh);
         }
 
-        for (let i = 0; i < 35; i++) {
+        for (let i = 0; i < 15; i++) {
             const s = 0.2 + Math.random() * 0.6;
             const geo = new THREE.BoxGeometry(s, s * 0.5, s * 0.7);
             const mat = new THREE.MeshLambertMaterial({
@@ -175,7 +175,7 @@ class Explosion {
     }
 
     createSmallExplosion(pos) {
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < 12; i++) {
             const size = 0.08 + Math.random() * 0.18;
             const geo = new THREE.SphereGeometry(size, 4, 4);
             const mat = new THREE.MeshBasicMaterial({
@@ -215,7 +215,7 @@ class Explosion {
         );
         const subPos = pos.clone().add(offset);
 
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 15; i++) {
             const size = 0.1 + Math.random() * 0.3;
             const geo = new THREE.SphereGeometry(size, 4, 4);
             const mat = new THREE.MeshBasicMaterial({
