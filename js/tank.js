@@ -18,8 +18,10 @@ class Tank {
         this.aiTargetAngle = 0;
         this.wordSprite = null;
         this.healthBar = null;
+        this.gltfModel = null;
 
-        this.buildModel();
+        this.loadGLTFModel(isPlayer);
+        
         this.createHealthBar();
 
         if (!isPlayer) {
@@ -34,69 +36,280 @@ class Tank {
         scene.add(this.group);
     }
 
-    buildModel() {
-        const bodyColor = this.isPlayer ? 0x3a6b3a : 0x8b2020;
-        const trackColor = 0x333333;
-        const turretColor = this.isPlayer ? 0x2d5a2d : 0x6b1515;
-
-        const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.7, metalness: 0.2 });
-        const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.8, 3.2), bodyMat);
-        body.position.y = 0.7;
-        body.castShadow = true;
-        this.group.add(body);
-
-        const front = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.4, 0.8), bodyMat);
-        front.position.set(0, 1.0, -1.6);
-        front.rotation.x = -0.3;
-        front.castShadow = true;
-        this.group.add(front);
-
-        const trackMat = new THREE.MeshStandardMaterial({ color: trackColor, roughness: 0.9 });
-        const trackGeo = new THREE.BoxGeometry(0.5, 0.6, 3.4);
-        const trackL = new THREE.Mesh(trackGeo, trackMat);
-        trackL.position.set(-1.3, 0.4, 0);
-        trackL.castShadow = true;
-        this.group.add(trackL);
-        const trackR = new THREE.Mesh(trackGeo, trackMat);
-        trackR.position.set(1.3, 0.4, 0);
-        trackR.castShadow = true;
-        this.group.add(trackR);
-
-        const wheelGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.3, 8);
-        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
-        for (let side = -1; side <= 1; side += 2) {
-            for (let i = -1; i <= 1; i++) {
-                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-                wheel.rotation.z = Math.PI / 2;
-                wheel.position.set(side * 1.3, 0.3, i * 1.2);
-                this.group.add(wheel);
+    loadGLTFModel(isPlayer) {
+        if (typeof TankGLTFLoader === 'undefined' || !TankGLTFLoader.playerModel) {
+            console.log('Using procedural tank model');
+            this.buildDetailedModel();
+            return;
+        }
+        
+        const model = TankGLTFLoader.playerModel.clone();
+        
+        const color = isPlayer ? 0x4a5d3a : 0x8b3a2a;
+        
+        model.traverse((child) => {
+            if (child.isMesh && child.material) {
+                child.material = child.material.clone();
+                if (child.material.color) {
+                    child.material.color.setHex(color);
+                }
             }
+        });
+        
+        model.rotation.x = 0;
+        model.rotation.y = Math.PI / 2;
+        
+        this.group.add(model);
+        this.turretGroup = this.group;
+        this.gltfModel = model;
+        
+        if (isPlayer) {
+            console.log('Tank oriented correctly! Using group for turret');
+        }
+    }
+
+    buildDetailedModel() {
+        const playerGreen = 0x4a5d3a;
+        const enemyRed = 0x8b3a2a;
+        const trackBlack = 0x1a1a1a;
+        const metal = 0x3a3a3a;
+        
+        const bodyColor = this.isPlayer ? playerGreen : enemyRed;
+        const turretColor = this.isPlayer ? 0x3d4d2a : 0x6b2a1a;
+        const accentColor = this.isPlayer ? 0x2d3d1a : 0x4d1a1a;
+
+        const armors = [
+            { pos: [-1.3, 0.5, 0], size: [0.18, 0.7, 3.5] },
+            { pos: [1.3, 0.5, 0], size: [0.18, 0.7, 3.5] },
+            { pos: [0, 0.5, -1.7], size: [2.5, 0.65, 0.18] },
+            { pos: [0, 0.5, 1.65], size: [2.5, 0.65, 0.18] },
+            { pos: [-0.9, 0.95, 0], size: [0.12, 0.25, 2.8] },
+            { pos: [0.9, 0.95, 0], size: [0.12, 0.25, 2.8] },
+        ];
+        
+        const armorMat = new THREE.MeshStandardMaterial({ 
+            color: bodyColor, roughness: 0.6, metalness: 0.45 
+        });
+        armors.forEach(a => {
+            const armor = new THREE.Mesh(
+                new THREE.BoxGeometry(a.size[0], a.size[1], a.size[2]),
+                armorMat
+            );
+            armor.position.set(a.pos[0], a.pos[1], a.pos[2]);
+            armor.castShadow = true;
+            armor.receiveShadow = true;
+            this.group.add(armor);
+        });
+
+        const chassis = new THREE.Mesh(
+            new THREE.BoxGeometry(2.4, 0.45, 3.4),
+            new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.55, metalness: 0.5 })
+        );
+        chassis.position.set(0, 0.45, 0);
+        chassis.castShadow = true;
+        chassis.receiveShadow = true;
+        this.group.add(chassis);
+
+        const engineDeck = new THREE.Mesh(
+            new THREE.BoxGeometry(2.2, 0.25, 1.2),
+            new THREE.MeshStandardMaterial({ color: accentColor, roughness: 0.65, metalness: 0.35 })
+        );
+        engineDeck.position.set(0, 0.85, 1.1);
+        engineDeck.castShadow = true;
+        this.group.add(engineDeck);
+
+        const grillMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.2 });
+        for (let i = 0; i < 5; i++) {
+            const grill = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.02, 0.08), grillMat);
+            grill.position.set(0, 0.72, 1.65 + i * 0.12);
+            this.group.add(grill);
         }
 
-        const turretMat = new THREE.MeshStandardMaterial({ color: turretColor, roughness: 0.6, metalness: 0.25 });
-        this.turretGroup.position.set(0, 1.2, -0.2);
-        const turretBase = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.0, 0.6, 12), turretMat);
+        const trackMat = new THREE.MeshStandardMaterial({ color: trackBlack, roughness: 0.85, metalness: 0.3 });
+        
+        for (let side = -1; side <= 1; side += 2) {
+            const track = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.5, 3.8), trackMat);
+            track.position.set(side * 1.45, 0.32, 0);
+            track.castShadow = true;
+            this.group.add(track);
+            
+            for (let i = 0; i < 8; i++) {
+                const link = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.32, 0.35, 0.42),
+                    trackMat
+                );
+                link.position.set(side * 1.45, 0.32, -1.5 + i * 0.43);
+                link.castShadow = true;
+                this.group.add(link);
+            }
+            
+            const roadWheel1 = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.28, 20), trackMat);
+            roadWheel1.rotation.z = Math.PI / 2;
+            roadWheel1.position.set(side * 1.45, 0.32, -1.5);
+            roadWheel1.castShadow = true;
+            this.group.add(roadWheel1);
+            
+            const roadWheel2 = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.28, 20), trackMat);
+            roadWheel2.rotation.z = Math.PI / 2;
+            roadWheel2.position.set(side * 1.45, 0.32, 1.5);
+            roadWheel2.castShadow = true;
+            this.group.add(roadWheel2);
+            
+            const idlerWheel = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.32, 0.32, 0.3, 16),
+                new THREE.MeshStandardMaterial({ color: metal, roughness: 0.4, metalness: 0.7 })
+            );
+            idlerWheel.rotation.z = Math.PI / 2;
+            idlerWheel.position.set(side * 1.45, 0.32, 1.9);
+            idlerWheel.castShadow = true;
+            this.group.add(idlerWheel);
+            
+            const driveSprocket = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.28, 0.28, 0.32, 12),
+                new THREE.MeshStandardMaterial({ color: metal, roughness: 0.4, metalness: 0.7 })
+            );
+            driveSprocket.rotation.z = Math.PI / 2;
+            driveSprocket.position.set(side * 1.45, 0.32, -1.9);
+            driveSprocket.castShadow = true;
+            this.group.add(driveSprocket);
+        }
+
+        const trackSkirt = new THREE.Mesh(
+            new THREE.BoxGeometry(2.7, 0.08, 3.6),
+            new THREE.MeshStandardMaterial({ color: trackBlack, roughness: 0.9, metalness: 0.2 })
+        );
+        trackSkirt.position.set(0, 0.1, 0);
+        trackSkirt.receiveShadow = true;
+        this.group.add(trackSkirt);
+
+        this.turretGroup.position.set(0, 0.98, -0.15);
+
+        const turretBase = new THREE.Mesh(
+            new THREE.BoxGeometry(1.7, 0.45, 1.9),
+            new THREE.MeshStandardMaterial({ color: turretColor, roughness: 0.55, metalness: 0.4 })
+        );
+        turretBase.position.y = 0.1;
         turretBase.castShadow = true;
         this.turretGroup.add(turretBase);
 
-        const turretTop = new THREE.Mesh(
-            new THREE.SphereGeometry(0.7, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), turretMat
+        const turretMiddle = new THREE.Mesh(
+            new THREE.BoxGeometry(1.4, 0.35, 1.5),
+            new THREE.MeshStandardMaterial({ color: turretColor, roughness: 0.5, metalness: 0.45 })
         );
-        turretTop.position.y = 0.25;
+        turretMiddle.position.y = 0.5;
+        turretMiddle.castShadow = true;
+        this.turretGroup.add(turretMiddle);
+
+        const turretTop = new THREE.Mesh(
+            new THREE.BoxGeometry(1.1, 0.25, 1.2),
+            new THREE.MeshStandardMaterial({ color: turretColor, roughness: 0.5, metalness: 0.45 })
+        );
+        turretTop.position.y = 0.85;
         turretTop.castShadow = true;
         this.turretGroup.add(turretTop);
 
-        const barrelMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.5, metalness: 0.4 });
-        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 2.5, 8), barrelMat);
+        const loaderGroup = new THREE.Group();
+        
+        const loader1 = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.25, 0.28, 0.6, 12),
+            new THREE.MeshStandardMaterial({ color: metal, roughness: 0.35, metalness: 0.65 })
+        );
+        loader1.rotation.x = Math.PI / 2;
+        loader1.position.set(-0.5, 0.35, 0);
+        loaderGroup.add(loader1);
+        
+        const loader2 = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.25, 0.28, 0.6, 12),
+            new THREE.MeshStandardMaterial({ color: metal, roughness: 0.35, metalness: 0.65 })
+        );
+        loader2.rotation.x = Math.PI / 2;
+        loader2.position.set(0.5, 0.35, 0);
+        loaderGroup.add(loader2);
+        
+        loaderGroup.position.set(0, 0.52, 0.45);
+        this.turretGroup.add(loaderGroup);
+
+        const cupola = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.32, 0.35, 0.32, 10),
+            new THREE.MeshStandardMaterial({ color: turretColor, roughness: 0.5, metalness: 0.45 })
+        );
+        cupola.position.set(0.55, 0.72, -0.35);
+        cupola.castShadow = true;
+        this.turretGroup.add(cupola);
+
+        const hatch = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.22, 0.22, 0.08, 10),
+            new THREE.MeshStandardMaterial({ color: accentColor, roughness: 0.45, metalness: 0.5 })
+        );
+        hatch.position.set(0.55, 0.9, -0.35);
+        this.turretGroup.add(hatch);
+
+        const barrelMat = new THREE.MeshStandardMaterial({ color: 0x2d2d2d, roughness: 0.35, metalness: 0.7 });
+        
+        const barrel = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.095, 0.11, 3.2, 16),
+            barrelMat
+        );
         barrel.rotation.x = Math.PI / 2;
-        barrel.position.set(0, 0.2, -1.6);
+        barrel.position.set(0, 0.28, 1.8);
         barrel.castShadow = true;
         this.turretGroup.add(barrel);
 
-        const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.12, 0.3, 8), barrelMat);
+        const muzzle = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.14, 0.095, 0.4, 14),
+            barrelMat
+        );
         muzzle.rotation.x = Math.PI / 2;
-        muzzle.position.set(0, 0.2, -2.85);
+        muzzle.position.set(0, 0.28, 3.45);
+        muzzle.castShadow = true;
         this.turretGroup.add(muzzle);
+
+        for (let i = 0; i < 4; i++) {
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(0.13, 0.018, 8, 16),
+                barrelMat
+            );
+            ring.rotation.x = Math.PI / 2;
+            ring.position.set(0, 0.28, 3.2 + i * 0.1);
+            this.turretGroup.add(ring);
+        }
+
+        const coaxMachineGun = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.025, 0.025, 0.8, 8),
+            barrelMat
+        );
+        coaxMachineGun.rotation.x = Math.PI / 2;
+        coaxMachineGun.position.set(0, 0.08, 0.95);
+        this.turretGroup.add(coaxMachineGun);
+
+        for (let i = 0; i < 3; i++) {
+            const antenna = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.012, 0.012, 0.4 + i * 0.15, 6),
+                new THREE.MeshStandardMaterial({ color: metal, roughness: 0.3, metalness: 0.8 })
+            );
+            antenna.position.set(0.7 + i * 0.08, 1.15 + i * 0.12, -0.65 + i * 0.1);
+            antenna.rotation.z = 0.1 * (i + 1);
+            this.turretGroup.add(antenna);
+        }
+
+        const lensMat = new THREE.MeshStandardMaterial({ 
+            color: 0x88ffff, 
+            emissive: 0x88ffff, 
+            emissiveIntensity: 0.3,
+            roughness: 0.1, 
+            metalness: 0.9 
+        });
+        
+        const headlamp = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), lensMat);
+        headlamp.position.set(-0.7, 0.72, 0.92);
+        this.group.add(headlamp);
+        
+        const taillamp = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), lensMat);
+        taillamp.position.set(-0.7, 0.72, -1.65);
+        taillamp.material = lensMat.clone();
+        taillamp.material.color.setHex(0xff3333);
+        taillamp.material.emissive.setHex(0xff3333);
+        this.group.add(taillamp);
 
         this.group.add(this.turretGroup);
     }
@@ -270,13 +483,17 @@ class Tank {
     }
 
     getBarrelTip() {
+        if (this.gltfModel) {
+            const pos = this.group.position.clone();
+            pos.y += 1;
+            pos.z += 4;
+            return pos;
+        }
         return this.turretGroup.localToWorld(new THREE.Vector3(0, 0.2, -3.0));
     }
 
     getBarrelDirection() {
-        const dir = new THREE.Vector3(0, 0, -1);
-        dir.applyQuaternion(this.turretGroup.getWorldQuaternion(new THREE.Quaternion()));
-        return dir.normalize();
+        return new THREE.Vector3(0, 0, -1);
     }
 
     takeDamage(amount) {

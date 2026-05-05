@@ -99,3 +99,5 @@ const WordManager = {
         this.usedIndices.clear();
     }
 };
+
+window.WordManager = WordManager;

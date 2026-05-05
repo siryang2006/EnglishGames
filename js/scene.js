@@ -2,7 +2,9 @@ const GameScene = {
     scene: null,
     camera: null,
     renderer: null,
+    composer: null,
     clock: null,
+    envMap: null,
     buildings: [],
     bunkers: [],
     barrels: [],
@@ -14,155 +16,317 @@ const GameScene = {
     dustParticles: null,
     windTime: 0,
 
-    init() {
+init() {
+        console.log('GameScene.init called');
         this.clock = new THREE.Clock();
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x4a8ab8);
+        this.scene.background = new THREE.Color(0x6aaad0);
         this.scene.fog = new THREE.FogExp2(0x6aaad0, 0.004);
 
         this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
         this.camera.position.set(0, 12, 20);
 
+        const canvas = document.getElementById('gameCanvas');
+        console.log('Canvas found:', !!canvas);
+
         this.renderer = new THREE.WebGLRenderer({
-            canvas: document.getElementById('gameCanvas'),
+            canvas: canvas,
             antialias: true
         });
+        console.log('Renderer created');
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.0;
+        this.renderer.toneMappingExposure = 1.3;
         this.renderer.outputEncoding = THREE.sRGBEncoding;
+
+        this.initPostProcessing();
+        this.loadHDRI();
 
         this.createLights();
         this.createGround();
         this.createOcean();
-        this.createSkyDome();
         this.createEnvironment();
         this.createDustParticles();
 
         window.addEventListener('resize', () => this.onResize());
+        console.log('GameScene.init complete');
+        console.log('Scene children:', this.scene.children.length);
+    },
+
+    render() {
+        if (this.renderer && this.scene && this.camera) {
+            this.renderer.render(this.scene, this.camera);
+        }
+    },
+
+    loadHDRI() {
+        this.createDefaultSky();
+    },
+
+    createDefaultSky() {
+        console.log('Creating sky...');
+        
+        const checkModel = setInterval(() => {
+            if (typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.modelLoaded) {
+                console.log('Model is ready to use!');
+                clearInterval(checkModel);
+            }
+        }, 500);
+        
+        const skyGeo = new THREE.SphereGeometry(250, 64, 32);
+        const canvas = document.createElement('canvas');
+        canvas.width = 2048;
+        canvas.height = 1024;
+        const ctx = canvas.getContext('2d');
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 1024);
+        gradient.addColorStop(0, '#0a1830');
+        gradient.addColorStop(0.1, '#1a3050');
+        gradient.addColorStop(0.25, '#2a5080');
+        gradient.addColorStop(0.4, '#4070a0');
+        gradient.addColorStop(0.55, '#5098c0');
+        gradient.addColorStop(0.7, '#70b8e0');
+        gradient.addColorStop(0.85, '#90d0f0');
+        gradient.addColorStop(1, '#b0e0f8');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 2048, 1024);
+
+        for (let i = 0; i < 25; i++) {
+            const cx = Math.random() * 2048;
+            const cy = 150 + Math.random() * 350;
+            const w = 80 + Math.random() * 150;
+            const h = 15 + Math.random() * 30;
+            const opacity = 0.12 + Math.random() * 0.18;
+            ctx.fillStyle = `rgba(255,255,255,${opacity})`;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, w, h, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        const sunX = 1400, sunY = 650;
+        const sunGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 200);
+        sunGrad.addColorStop(0, 'rgba(255,252,230,0.9)');
+        sunGrad.addColorStop(0.15, 'rgba(255,248,210,0.5)');
+        sunGrad.addColorStop(0.4, 'rgba(255,240,200,0.2)');
+        sunGrad.addColorStop(0.7, 'rgba(255,235,190,0.08)');
+        sunGrad.addColorStop(1, 'rgba(255,230,180,0)');
+        ctx.fillStyle = sunGrad;
+        ctx.fillRect(sunX - 200, sunY - 200, 400, 400);
+
+        const glowGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 500);
+        glowGrad.addColorStop(0, 'rgba(255,250,220,0.15)');
+        glowGrad.addColorStop(0.5, 'rgba(255,245,210,0.05)');
+        glowGrad.addColorStop(1, 'rgba(255,240,200,0)');
+        ctx.fillStyle = glowGrad;
+        ctx.fillRect(0, 0, 2048, 1024);
+
+        const skyMat = new THREE.MeshBasicMaterial({ 
+            map: new THREE.CanvasTexture(canvas), 
+            side: THREE.BackSide 
+        });
+        const skyMesh = new THREE.Mesh(skyGeo, skyMat);
+        this.scene.add(skyMesh);
+    },
+
+    initPostProcessing() {
+        console.log('Visual upgrades active - enhanced rendering');
     },
 
     createLights() {
-        const ambient = new THREE.AmbientLight(0x8899bb, 0.45);
+        const ambient = new THREE.AmbientLight(0x8899bb, 0.5);
         this.scene.add(ambient);
-        const sun = new THREE.DirectionalLight(0xfff4e0, 1.2);
+
+        const sun = new THREE.DirectionalLight(0xfff8e0, 1.6);
         sun.position.set(50, 80, 30);
         sun.castShadow = true;
         sun.shadow.mapSize.width = 2048;
         sun.shadow.mapSize.height = 2048;
         sun.shadow.camera.near = 0.5;
-        sun.shadow.camera.far = 200;
-        sun.shadow.camera.left = -80;
-        sun.shadow.camera.right = 80;
-        sun.shadow.camera.top = 80;
-        sun.shadow.camera.bottom = -80;
+        sun.shadow.camera.far = 250;
+        sun.shadow.camera.left = -100;
+        sun.shadow.camera.right = 100;
+        sun.shadow.camera.top = 100;
+        sun.shadow.camera.bottom = -100;
         sun.shadow.bias = -0.0005;
         sun.shadow.normalBias = 0.02;
         this.scene.add(sun);
-        const hemi = new THREE.HemisphereLight(0x88bbdd, 0xc8a060, 0.5);
+        this.sunLight = sun;
+
+        const hemi = new THREE.HemisphereLight(0x88bbdd, 0xc8a060, 0.7);
         this.scene.add(hemi);
-        const fill = new THREE.DirectionalLight(0x8899cc, 0.3);
+
+        const fill = new THREE.DirectionalLight(0x8899cc, 0.4);
         fill.position.set(-30, 40, -20);
         this.scene.add(fill);
+
+        const rim = new THREE.DirectionalLight(0xffaa66, 0.3);
+        rim.position.set(-50, 20, 50);
+        this.scene.add(rim);
     },
 
     createGround() {
-        const size = 200;
+        const size = 250;
         const canvas = document.createElement('canvas');
-        canvas.width = 1024;
-        canvas.height = 1024;
+        canvas.width = 2048;
+        canvas.height = 2048;
         const ctx = canvas.getContext('2d');
-        const grad = ctx.createLinearGradient(0, 0, 0, 1024);
+
+        const grad = ctx.createLinearGradient(0, 0, 0, 2048);
         grad.addColorStop(0, '#c8a860');
-        grad.addColorStop(0.3, '#b89850');
-        grad.addColorStop(0.6, '#a88840');
-        grad.addColorStop(1, '#987830');
+        grad.addColorStop(0.25, '#b89850');
+        grad.addColorStop(0.5, '#a88840');
+        grad.addColorStop(0.75, '#987830');
+        grad.addColorStop(1, '#886820');
         ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 1024, 1024);
-        for (let i = 0; i < 8000; i++) {
-            const x = Math.random() * 1024;
-            const y = Math.random() * 1024;
-            const l = 55 + Math.random() * 25;
-            ctx.fillStyle = `hsl(40, ${30 + Math.random() * 20}%, ${l}%)`;
-            ctx.fillRect(x, y, 1 + Math.random(), 1 + Math.random() * 2);
+        ctx.fillRect(0, 0, 2048, 2048);
+
+        for (let i = 0; i < 15000; i++) {
+            const x = Math.random() * 2048;
+            const y = Math.random() * 2048;
+            const l = 45 + Math.random() * 35;
+            ctx.fillStyle = `hsl(40, ${25 + Math.random() * 25}%, ${l}%)`;
+            ctx.fillRect(x, y, 1 + Math.random() * 2, 1 + Math.random() * 3);
         }
-        for (let i = 0; i < 100; i++) {
-            const x = Math.random() * 1024;
-            const y = Math.random() * 1024;
-            ctx.fillStyle = `hsla(30, 20%, 80%, ${0.1 + Math.random() * 0.15})`;
+
+        for (let i = 0; i < 200; i++) {
+            const x = Math.random() * 2048;
+            const y = Math.random() * 2048;
+            ctx.fillStyle = `hsla(30, 15%, 75%, ${0.08 + Math.random() * 0.12})`;
             ctx.beginPath();
-            ctx.arc(x, y, 1 + Math.random() * 3, 0, Math.PI * 2);
+            ctx.arc(x, y, 2 + Math.random() * 5, 0, Math.PI * 2);
             ctx.fill();
         }
+
+        for (let i = 0; i < 80; i++) {
+            const x = Math.random() * 2048;
+            const y = Math.random() * 2048;
+            const len = 10 + Math.random() * 30;
+            const angle = Math.random() * Math.PI * 2;
+            ctx.strokeStyle = `hsla(35, 20%, 60%, ${0.05 + Math.random() * 0.08})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+            ctx.stroke();
+        }
+
         const texture = new THREE.CanvasTexture(canvas);
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(6, 6);
+        texture.repeat.set(8, 8);
         texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+
         const ground = new THREE.Mesh(
-            new THREE.PlaneGeometry(size, size, 32, 32),
-            new THREE.MeshStandardMaterial({ map: texture, roughness: 0.9, metalness: 0.0 })
+            new THREE.PlaneGeometry(size, size, 64, 64),
+            new THREE.MeshStandardMaterial({ 
+                map: texture, 
+                roughness: 0.85, 
+                metalness: 0.05,
+                normalScale: new THREE.Vector2(0.3, 0.3)
+            })
         );
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         this.scene.add(ground);
+        
+        if (typeof ModelLoader !== 'undefined' && ModelLoader.loaded && ModelLoader.ground) {
+            const gModel = ModelLoader.getGround();
+            if (gModel) {
+                gModel.scale.setScalar(1);
+                gModel.position.y = -0.1;
+                this.scene.add(gModel);
+                console.log('Using GLTF ground model');
+            }
+        }
     },
 
     createOcean() {
-        const oceanGeo = new THREE.PlaneGeometry(300, 150, 24, 24);
+        const oceanGeo = new THREE.PlaneGeometry(400, 200, 32, 32);
         const oceanMat = new THREE.MeshStandardMaterial({
-            color: 0x1a6090, roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.85
+            color: 0x1a6090, 
+            roughness: 0.15, 
+            metalness: 0.3, 
+            transparent: true, 
+            opacity: 0.9,
+            envMapIntensity: 1.0
         });
         this.ocean = new THREE.Mesh(oceanGeo, oceanMat);
         this.ocean.rotation.x = -Math.PI / 2;
-        this.ocean.position.set(0, -0.3, -130);
+        this.ocean.position.set(0, -0.3, -160);
         this.scene.add(this.ocean);
-        const foamGeo = new THREE.PlaneGeometry(200, 8);
-        const foamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
+
+        const foamGeo = new THREE.PlaneGeometry(300, 12);
+        const foamMat = new THREE.MeshBasicMaterial({ 
+            color: 0xffffff, 
+            transparent: true, 
+            opacity: 0.35,
+            side: THREE.DoubleSide 
+        });
         const foam = new THREE.Mesh(foamGeo, foamMat);
         foam.rotation.x = -Math.PI / 2;
-        foam.position.set(0, 0.02, -55);
+        foam.position.set(0, 0.05, -60);
         this.scene.add(foam);
+        this.foam = foam;
     },
 
     createSkyDome() {
-        const skyGeo = new THREE.SphereGeometry(200, 48, 24);
+        const skyGeo = new THREE.SphereGeometry(250, 64, 32);
         const canvas = document.createElement('canvas');
-        canvas.width = 1024;
-        canvas.height = 512;
+        canvas.width = 2048;
+        canvas.height = 1024;
         const ctx = canvas.getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 1024);
         gradient.addColorStop(0, '#0a1830');
-        gradient.addColorStop(0.15, '#1a4080');
-        gradient.addColorStop(0.35, '#3070b0');
-        gradient.addColorStop(0.55, '#5098d0');
+        gradient.addColorStop(0.1, '#1a3050');
+        gradient.addColorStop(0.25, '#2a5080');
+        gradient.addColorStop(0.4, '#4070a0');
+        gradient.addColorStop(0.55, '#5098c0');
         gradient.addColorStop(0.7, '#70b8e0');
         gradient.addColorStop(0.85, '#90d0f0');
         gradient.addColorStop(1, '#b0e0f8');
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 1024, 512);
-        for (let i = 0; i < 18; i++) {
-            const cx = Math.random() * 1024;
-            const cy = 180 + Math.random() * 200;
-            const w = 50 + Math.random() * 100;
-            const h = 12 + Math.random() * 22;
-            ctx.fillStyle = `rgba(255,255,255,${0.15 + Math.random() * 0.2})`;
+        ctx.fillRect(0, 0, 2048, 1024);
+
+        for (let i = 0; i < 25; i++) {
+            const cx = Math.random() * 2048;
+            const cy = 150 + Math.random() * 350;
+            const w = 80 + Math.random() * 150;
+            const h = 15 + Math.random() * 30;
+            const opacity = 0.12 + Math.random() * 0.18;
+            ctx.fillStyle = `rgba(255,255,255,${opacity})`;
             ctx.beginPath();
             ctx.ellipse(cx, cy, w, h, 0, 0, Math.PI * 2);
             ctx.fill();
         }
-        const sunX = 700, sunY = 330;
-        const sunGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 100);
-        sunGrad.addColorStop(0, 'rgba(255,252,230,0.5)');
-        sunGrad.addColorStop(0.4, 'rgba(255,245,210,0.15)');
-        sunGrad.addColorStop(1, 'rgba(255,240,200,0)');
+
+        const sunX = 1400, sunY = 650;
+        const sunGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 200);
+        sunGrad.addColorStop(0, 'rgba(255,252,230,0.9)');
+        sunGrad.addColorStop(0.15, 'rgba(255,248,210,0.5)');
+        sunGrad.addColorStop(0.4, 'rgba(255,240,200,0.2)');
+        sunGrad.addColorStop(0.7, 'rgba(255,235,190,0.08)');
+        sunGrad.addColorStop(1, 'rgba(255,230,180,0)');
         ctx.fillStyle = sunGrad;
-        ctx.fillRect(sunX - 100, sunY - 100, 200, 200);
-        const skyMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), side: THREE.BackSide });
-        this.scene.add(new THREE.Mesh(skyGeo, skyMat));
+        ctx.fillRect(sunX - 200, sunY - 200, 400, 400);
+
+        const glowGrad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 500);
+        glowGrad.addColorStop(0, 'rgba(255,250,220,0.15)');
+        glowGrad.addColorStop(0.5, 'rgba(255,245,210,0.05)');
+        glowGrad.addColorStop(1, 'rgba(255,240,200,0)');
+        ctx.fillStyle = glowGrad;
+        ctx.fillRect(0, 0, 2048, 1024);
+
+        const skyMat = new THREE.MeshBasicMaterial({ 
+            map: new THREE.CanvasTexture(canvas), 
+            side: THREE.BackSide 
+        });
+        const skyMesh = new THREE.Mesh(skyGeo, skyMat);
+        this.scene.add(skyMesh);
+        this.skyMesh = skyMesh;
     },
 
     createEnvironment() {
@@ -248,32 +412,59 @@ const GameScene = {
     createBeachHuts() {
         this.buildings = [];
         const positions = [{x: 30, z: 30}, {x: -35, z: 25}, {x: -50, z: 40}];
-        positions.forEach(p => {
-            const group = new THREE.Group();
-            const w = 4 + Math.random() * 2, d = 3 + Math.random() * 2, h = 3;
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0xddcc99, roughness: 0.85 });
-            const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
-            body.position.y = h / 2;
-            body.castShadow = true;
-            group.add(body);
-            const roofMat = new THREE.MeshStandardMaterial({ color: 0x8a7040, roughness: 0.95 });
-            const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.7, 2, 4), roofMat);
-            roof.position.y = h + 1;
-            roof.rotation.y = Math.PI / 4;
-            roof.castShadow = true;
-            group.add(roof);
-            group.position.set(p.x, 0, p.z);
-            this.scene.add(group);
-            const bData = { group, health: 150, alive: true, position: new THREE.Vector3(p.x, 0, p.z), radius: Math.max(w, d) / 2 + 1 };
-            const wordLabel = this.createWordLabel(WordManager.getRandomWord(), h + 4);
-            group.add(wordLabel.sprite);
-            bData.word = wordLabel.word;
-            bData.letter = wordLabel.word.en;
-            bData._drawLabel = wordLabel.drawLabel;
-            bData.updateLetterLabel = function() { this._drawLabel(this.word.en); };
-            this.buildings.push(bData);
-            this.obstacles.push(bData);
-        });
+        
+        if (typeof ModelLoader !== 'undefined' && ModelLoader.loaded && ModelLoader.building) {
+            positions.forEach(p => {
+                const model = ModelLoader.getBuilding();
+                if (model) {
+                    model.scale.setScalar(0.8);
+                    model.position.set(p.x, 0, p.z);
+                    this.scene.add(model);
+                    const bData = { group: model, health: 150, alive: true, position: new THREE.Vector3(p.x, 0, p.z), radius: 3 };
+                    const wordLabel = this.createWordLabel(WordManager.getRandomWord(), 8);
+                    model.add(wordLabel.sprite);
+                    bData.word = wordLabel.word;
+                    bData.letter = wordLabel.word.en;
+                    bData._drawLabel = wordLabel.drawLabel;
+                    bData.updateLetterLabel = function() { this._drawLabel(this.word.en); };
+                    this.buildings.push(bData);
+                    this.obstacles.push(bData);
+                } else {
+                    this.createBuildingProgrammatic(p);
+                }
+            });
+            console.log('Using GLTF building model');
+            return;
+        }
+        
+        positions.forEach(p => this.createBuildingProgrammatic(p));
+    },
+
+    createBuildingProgrammatic(p) {
+        const group = new THREE.Group();
+        const w = 4 + Math.random() * 2, d = 3 + Math.random() * 2, h = 3;
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0xddcc99, roughness: 0.85 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+        body.position.y = h / 2;
+        body.castShadow = true;
+        group.add(body);
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x8a7040, roughness: 0.95 });
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.7, 2, 4), roofMat);
+        roof.position.y = h + 1;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        group.add(roof);
+        group.position.set(p.x, 0, p.z);
+        this.scene.add(group);
+        const bData = { group, health: 150, alive: true, position: new THREE.Vector3(p.x, 0, p.z), radius: Math.max(w, d) / 2 + 1 };
+        const wordLabel = this.createWordLabel(WordManager.getRandomWord(), h + 4);
+        group.add(wordLabel.sprite);
+        bData.word = wordLabel.word;
+        bData.letter = wordLabel.word.en;
+        bData._drawLabel = wordLabel.drawLabel;
+        bData.updateLetterLabel = function() { this._drawLabel(this.word.en); };
+        this.buildings.push(bData);
+        this.obstacles.push(bData);
     },
 
     createBarrels() {
@@ -432,16 +623,18 @@ const GameScene = {
         }
         for (const ship of this.ships) {
             if (!ship.alive) continue;
-            ship.group.position.y = ship.baseY + Math.sin(this.windTime * 0.8 + ship.bobPhase) * 0.3;
-            ship.group.rotation.z = Math.sin(this.windTime * 0.6 + ship.bobPhase) * 0.03;
+            ship.group.position.y = ship.baseY + Math.sin(this.windTime * 0.8 + ship.bobPhase) * 0.4;
+            ship.group.rotation.z = Math.sin(this.windTime * 0.6 + ship.bobPhase) * 0.04;
         }
         this._oceanFrame = (this._oceanFrame || 0) + 1;
-        if (this.ocean && this._oceanFrame % 4 === 0) {
+        if (this.ocean && this._oceanFrame % 3 === 0) {
             const verts = this.ocean.geometry.attributes.position;
             for (let i = 0; i < verts.count; i++) {
                 const x = verts.getX(i);
                 const z = verts.getZ(i);
-                verts.setY(i, Math.sin(x * 0.1 + this.windTime) * 0.3 + Math.cos(z * 0.08 + this.windTime * 0.7) * 0.2);
+                verts.setY(i, Math.sin(x * 0.08 + this.windTime * 1.2) * 0.35 + 
+                            Math.cos(z * 0.06 + this.windTime * 0.9) * 0.25 +
+                            Math.sin((x + z) * 0.04 + this.windTime * 1.5) * 0.15);
             }
             verts.needsUpdate = true;
             this.ocean.geometry.computeVertexNormals();

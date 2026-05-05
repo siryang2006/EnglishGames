@@ -22,9 +22,23 @@ const Game = {
     maxGameTime: 600,
     aimPitch: 0,
 
-    init() {
+init() {
         GameScene.init();
         InputManager.init();
+        
+        if (typeof TankGLTFLoader !== 'undefined') {
+            TankGLTFLoader.load(GameScene.scene, (model) => {
+                console.log('Real Abrams tank model ready, size:', model ? model.scale.x : 'default');
+            }, (err) => {
+                console.warn('Model load failed, using default:', err);
+            });
+        }
+        
+        if (typeof ModelLoader !== 'undefined') {
+            ModelLoader.load(GameScene.scene, () => {
+                console.log('All models loaded!');
+            });
+        }
     },
 
     start() {
@@ -40,29 +54,52 @@ const Game = {
         this.gameTime = this.maxGameTime;
         this.aimPitch = 0;
 
+        if (typeof AudioManager !== 'undefined') AudioManager.init();
+
         WordManager.reset();
         BulletManager.clear();
         ExplosionManager.clear();
 
-        this.player = new Tank(GameScene.scene, true);
-        this.player.group.position.set(0, 0, 0);
+        const checkAndStart = () => {
+            this.player = new Tank(GameScene.scene, true);
+            this.player.group.position.set(0, 0, 0);
+            console.log('Player tank created with GLTF:', typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.playerModel ? 'YES' : 'NO');
 
-        this.enemies = [];
-        for (let i = 0; i < this.maxEnemies; i++) this.spawnEnemy();
+            this.enemies = [];
+            for (let i = 0; i < this.maxEnemies; i++) this.spawnEnemy();
 
-        SoldierManager.init(GameScene.scene);
-        SoldierManager.spawnFriendly(2);
-        SoldierManager.spawnEnemy(2);
+            SoldierManager.init(GameScene.scene);
+            SoldierManager.spawnFriendly(2);
+            SoldierManager.spawnEnemy(2);
 
-        PickupManager.init(GameScene.scene);
-        AnimalManager.init(GameScene.scene);
-        AircraftManager.init(GameScene.scene);
-        SpellTracker.init(this.player);
+            PickupManager.init(GameScene.scene);
+            AnimalManager.init(GameScene.scene);
+            AircraftManager.init(GameScene.scene);
+            SpellTracker.init(this.player);
 
-        UI.reset();
-        const canvas = document.getElementById('gameCanvas');
-        canvas.requestPointerLock();
-        this.loop();
+            UI.reset();
+            const canvas = document.getElementById('gameCanvas');
+            canvas.requestPointerLock();
+            this.loop();
+        };
+
+        const modelsReady = () => {
+            const tankReady = typeof TankGLTFLoader === 'undefined' || TankGLTFLoader.modelReady;
+            const modelsLoaded = typeof ModelLoader === 'undefined' || ModelLoader.loaded;
+            return tankReady && modelsLoaded;
+        };
+
+        if (modelsReady()) {
+            checkAndStart();
+        } else {
+            const waitForModels = setInterval(() => {
+                console.log('Waiting for models... tank:', typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.modelReady, 'models:', typeof ModelLoader !== 'undefined' && ModelLoader.loaded);
+                if (modelsReady()) {
+                    clearInterval(waitForModels);
+                    checkAndStart();
+                }
+            }, 500);
+        }
     },
 
     spawnEnemy() {
@@ -78,6 +115,10 @@ const Game = {
         if (!this.running) return;
         requestAnimationFrame(() => this.loop());
         const dt = Math.min(GameScene.clock.getDelta(), 0.05);
+        if (!GameScene.renderer) {
+            console.error('Renderer not initialized');
+            return;
+        }
 
         this.handleInput(dt);
         this.updateEnemies(dt);
@@ -93,6 +134,7 @@ const Game = {
 
         this.checkCollisions();
         BulletManager.update(dt);
+        if (typeof MuzzleFlash !== 'undefined') MuzzleFlash.update(dt);
         ExplosionManager.update(dt);
         UI.update(dt);
         GameScene.updateParticles(dt);
@@ -189,8 +231,13 @@ const Game = {
     playerFire() {
         const p = this.player;
         const dir = p.getBarrelDirection();
-        dir.y += this.aimPitch || 0;
-        dir.normalize();
+        
+        if (this.aiming) {
+            dir.y += this.aimPitch || 0;
+            dir.normalize();
+        }
+        
+        console.log('Firing direction:', dir.x, dir.y, dir.z);
         BulletManager.fire(GameScene.scene, p.getBarrelTip(), dir, true);
     },
 
@@ -583,8 +630,13 @@ const Game = {
 
 function startGame() {
     document.getElementById('start-screen').style.display = 'none';
-    Game.init();
-    Game.start();
+    try {
+        Game.init();
+        Game.start();
+    } catch(e) {
+        alert('Error: ' + e.message);
+        console.error(e);
+    }
 }
 
 function restartGame() {

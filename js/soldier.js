@@ -12,6 +12,7 @@ class Soldier {
         this.patrolTimer = 0;
         this.word = null;
         this.letter = '';
+        this.usingGltf = false;
 
         this.buildModel();
         this.createHealthBar();
@@ -24,6 +25,11 @@ class Soldier {
     }
 
     buildModel() {
+        if (typeof ModelLoader !== 'undefined' && ModelLoader.soldier) {
+            this.loadGLTFModel();
+            return;
+        }
+        
         const skinColor = 0xddaa77;
         const uniformColor = this.isPlayerTeam ? 0x3a6b3a : 0x6b2020;
         const bootColor = 0x332211;
@@ -81,6 +87,16 @@ class Soldier {
         this.group.add(gunStock);
     }
 
+    loadGLTFModel() {
+        const model = ModelLoader.getSoldier();
+        if (model) {
+            model.scale.setScalar(1.5);
+            this.group.add(model);
+            this.usingGltf = true;
+            console.log('Soldier: using GLTF model');
+        }
+    }
+
     createHealthBar() {
         const canvas = document.createElement('canvas');
         canvas.width = 64;
@@ -121,6 +137,14 @@ class Soldier {
 
     updateAI(dt) {
         if (!this.alive) return;
+
+        if (!this.usingGltf && typeof ModelLoader !== 'undefined' && ModelLoader.loaded && ModelLoader.soldier) {
+            console.log('Upgrading soldier to GLTF');
+            while (this.group.children.length > 2) {
+                this.group.remove(this.group.children[0]);
+            }
+            this.loadGLTFModel();
+        }
 
         this.patrolTimer -= dt;
         if (this.patrolTimer <= 0) {
@@ -248,3 +272,5 @@ const SoldierManager = {
         this.scene = null;
     }
 };
+
+window.SoldierManager = SoldierManager;

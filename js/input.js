@@ -73,3 +73,5 @@ const InputManager = {
         this.mouse.dy = 0;
     }
 };
+
+window.InputManager = InputManager;

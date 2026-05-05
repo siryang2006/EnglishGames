@@ -111,3 +111,5 @@ const PickupManager = {
         this.scene = null;
     }
 };
+
+window.PickupManager = PickupManager;

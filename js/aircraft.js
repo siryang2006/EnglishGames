@@ -205,3 +205,5 @@ const AircraftManager = {
         this.scene = null;
     }
 };
+
+window.AircraftManager = AircraftManager;

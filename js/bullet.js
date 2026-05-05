@@ -8,27 +8,27 @@ class Bullet {
         this.age = 0;
         this.maxAge = 4;
 
-        const color = isPlayer ? 0x44ff44 : 0xff4444;
+        const color = isPlayer ? 0x88ff88 : 0xff8888;
 
-        // bullet core
-        const geo = new THREE.SphereGeometry(0.15, 8, 8);
+        // bullet core - bright emissive
+        const geo = new THREE.SphereGeometry(0.2, 8, 8);
         const mat = new THREE.MeshBasicMaterial({ color: color });
         this.mesh = new THREE.Mesh(geo, mat);
         this.mesh.position.copy(position);
         scene.add(this.mesh);
 
         // glow
-        const glowGeo = new THREE.SphereGeometry(0.3, 8, 8);
+        const glowGeo = new THREE.SphereGeometry(0.5, 8, 8);
         const glowMat = new THREE.MeshBasicMaterial({
             color: color,
             transparent: true,
-            opacity: 0.4
+            opacity: 0.6
         });
         this.glow = new THREE.Mesh(glowGeo, glowMat);
         this.mesh.add(this.glow);
 
-        // trail light
-        this.light = new THREE.PointLight(color, 2, 8);
+        // trail light - brighter
+        this.light = new THREE.PointLight(color, 4, 12);
         this.mesh.add(this.light);
 
         // trail particles
@@ -92,6 +92,12 @@ const BulletManager = {
     bullets: [],
 
     fire(scene, position, direction, isPlayer) {
+        if (typeof MuzzleFlash !== 'undefined') {
+            MuzzleFlash.create(scene, position, direction);
+        }
+        if (typeof AudioManager !== 'undefined') {
+            AudioManager.playGunshot();
+        }
         this.bullets.push(new Bullet(scene, position, direction, isPlayer));
     },
 
@@ -109,3 +115,5 @@ const BulletManager = {
         this.bullets = [];
     }
 };
+
+window.BulletManager = BulletManager;

@@ -370,6 +370,9 @@ const ExplosionManager = {
     explosions: [],
 
     create(scene, position, isEnemy) {
+        if (typeof AudioManager !== 'undefined') {
+            AudioManager.playExplosion();
+        }
         this.explosions.push(new Explosion(scene, position, isEnemy));
     },
 
@@ -387,3 +390,5 @@ const ExplosionManager = {
         this.explosions = [];
     }
 };
+
+window.ExplosionManager = ExplosionManager;
