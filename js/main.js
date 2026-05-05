@@ -74,7 +74,14 @@ init() {
 
             PickupManager.init(GameScene.scene);
             AnimalManager.init(GameScene.scene);
-            AircraftManager.init(GameScene.scene);
+            AnimalManager.spawn(8);
+            if (typeof AircraftGLTFLoader !== 'undefined') {
+                AircraftGLTFLoader.load(() => {
+                    AircraftManager.init(GameScene.scene);
+                });
+            } else {
+                AircraftManager.init(GameScene.scene);
+            }
             SpellTracker.init(this.player);
 
             UI.reset();

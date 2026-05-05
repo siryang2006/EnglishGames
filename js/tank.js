@@ -57,7 +57,13 @@ class Tank {
         });
         
         model.rotation.x = 0;
-        model.rotation.y = Math.PI / 2;
+        let rotationY = -Math.PI / 2;
+        if (typeof TankGLTFLoader !== 'undefined') {
+            rotationY = isPlayer 
+                ? (TankGLTFLoader.modelRotationY !== undefined ? TankGLTFLoader.modelRotationY : Math.PI)
+                : (TankGLTFLoader.enemyModelRotationY !== undefined ? TankGLTFLoader.enemyModelRotationY : Math.PI);
+        }
+        model.rotation.y = rotationY;
         
         this.group.add(model);
         this.turretGroup = this.group;
@@ -486,13 +492,16 @@ class Tank {
         if (this.gltfModel) {
             const pos = this.group.position.clone();
             pos.y += 1;
-            pos.z += 4;
+            pos.x += this.isPlayer ? 4 : -4;
             return pos;
         }
         return this.turretGroup.localToWorld(new THREE.Vector3(0, 0.2, -3.0));
     }
 
     getBarrelDirection() {
+        if (this.gltfModel) {
+            return new THREE.Vector3(this.isPlayer ? -1 : 1, 0, 0);
+        }
         return new THREE.Vector3(0, 0, -1);
     }
 
