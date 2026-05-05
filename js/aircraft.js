@@ -225,21 +225,25 @@ class Aircraft {
 const AircraftManager = {
     aircraft: [],
     scene: null,
-    spawnTimer: 0,
+    spawnTimer: 10,
+    initialized: false,
 
     init(scene) {
         this.scene = scene;
+        this.initialized = true;
         this.aircraft = [];
         this.spawnTimer = 5;
         for (let i = 0; i < 2; i++) this.spawn();
     },
 
     spawn() {
+        if (!this.scene) return;
         const a = new Aircraft(this.scene);
         this.aircraft.push(a);
     },
 
     update(dt) {
+        if (!this.initialized) return;
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0 && this.aircraft.filter(a => a.alive || a.falling).length < 3) {
             this.spawn();

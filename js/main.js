@@ -191,13 +191,14 @@ init() {
 
         if (moveX !== 0 || moveZ !== 0) {
             const moveDir = new THREE.Vector3(moveX, 0, moveZ).normalize();
-            // Calculate target angle: W (moveZ=-1) corresponds to Rotation 0.
-            // Math.atan2(y, x) with y=x_coord, x=-z_coord maps -Z to Angle 0.
-            // Calculate target angle: -Z (Group Forward) aligns with moveDir.
-            const targetAngle = Math.atan2(-moveDir.x, -moveDir.z);
+            // Tank model faces +X. Group rotation should align +X with moveDir.
+            // +X (0 deg) => angle = 0
+            // -X (180 deg) => angle = PI
+            // +Z (90 deg right) => angle = PI/2
+            // -Z (90 deg left) => angle = -PI/2
+            const targetAngle = Math.atan2(moveDir.z, moveDir.x);
             
             let angleDiff = targetAngle - p.group.rotation.y;
-            // Normalize angle difference to [-PI, PI]
             while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
             while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
             
@@ -208,7 +209,6 @@ init() {
                 p.group.rotation.y = targetAngle;
             }
 
-            // Move in the input direction (World Space)
             const oldPos = p.group.position.clone();
             p.group.position.addScaledVector(moveDir, p.speed * dt);
             if (this.checkObstacleCollision(p.group.position, 2.0)) p.group.position.copy(oldPos);

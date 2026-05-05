@@ -57,13 +57,13 @@ class Tank {
         });
         
         model.rotation.x = 0;
-        model.rotation.y = Math.PI;
+        model.rotation.y = 0;
         
         this.group.add(model);
         this.turretGroup = new THREE.Group();
         this.group.add(this.turretGroup);
         this.gltfModel = model;
-        this.modelRotationOffset = Math.PI;
+        this.modelRotationOffset = 0;
         
         if (isPlayer) {
             console.log('Tank oriented correctly! Using group for turret');
@@ -486,7 +486,7 @@ class Tank {
 
     getBarrelTip() {
         if (this.gltfModel) {
-            const forward = new THREE.Vector3(0, 0, -1);
+            const forward = new THREE.Vector3(1, 0, 0);
             forward.applyQuaternion(this.group.quaternion);
             const pos = this.group.position.clone();
             pos.y += 1;
@@ -498,7 +498,7 @@ class Tank {
 
     getBarrelDirection() {
         if (this.gltfModel) {
-            const forward = new THREE.Vector3(0, 0, -1);
+            const forward = new THREE.Vector3(1, 0, 0);
             forward.applyQuaternion(this.group.quaternion);
             forward.normalize();
             return forward;
