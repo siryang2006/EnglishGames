@@ -51,6 +51,8 @@ init() {
         this.createEnvironment();
         this.createDustParticles();
 
+        this.checkAndAddGLTFGround();
+
         window.addEventListener('resize', () => this.onResize());
         console.log('GameScene.init complete');
         console.log('Scene children:', this.scene.children.length);
@@ -235,12 +237,38 @@ init() {
         if (typeof ModelLoader !== 'undefined' && ModelLoader.loaded && ModelLoader.ground) {
             const gModel = ModelLoader.getGround();
             if (gModel) {
-                gModel.scale.setScalar(1);
-                gModel.position.y = -0.1;
+                let meshCount = 0;
+                gModel.traverse(c => { if (c.isMesh) meshCount++; });
+                console.log('GLTF ground meshes:', meshCount);
+                gModel.scale.setScalar(2.0);
+                gModel.position.y = 0;
                 this.scene.add(gModel);
-                console.log('Using GLTF ground model');
+            } else {
+                console.log('Ground model is null');
             }
+        } else {
+            console.log('Ground not loaded, ModelLoader.loaded:', typeof ModelLoader !== 'undefined' && ModelLoader.loaded);
         }
+    },
+
+    checkAndAddGLTFGround() {
+        const tryAddGround = () => {
+            if (typeof ModelLoader !== 'undefined' && ModelLoader.loaded && ModelLoader.ground) {
+                const gModel = ModelLoader.getGround();
+                if (gModel) {
+                    let meshCount = 0;
+                    gModel.traverse(c => { if (c.isMesh) meshCount++; });
+                    console.log('Adding GLTF ground, meshes:', meshCount);
+                    gModel.scale.setScalar(2.0);
+                    gModel.position.y = 0;
+                    this.scene.add(gModel);
+                    console.log('Ground added, scene children:', this.scene.children.length);
+                }
+            } else {
+                setTimeout(tryAddGround, 500);
+            }
+        };
+        tryAddGround();
     },
 
     createOcean() {

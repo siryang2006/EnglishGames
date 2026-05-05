@@ -57,17 +57,13 @@ class Tank {
         });
         
         model.rotation.x = 0;
-        let rotationY = -Math.PI / 2;
-        if (typeof TankGLTFLoader !== 'undefined') {
-            rotationY = isPlayer 
-                ? (TankGLTFLoader.modelRotationY !== undefined ? TankGLTFLoader.modelRotationY : Math.PI)
-                : (TankGLTFLoader.enemyModelRotationY !== undefined ? TankGLTFLoader.enemyModelRotationY : Math.PI);
-        }
-        model.rotation.y = rotationY;
+        model.rotation.y = Math.PI;
         
         this.group.add(model);
-        this.turretGroup = this.group;
+        this.turretGroup = new THREE.Group();
+        this.group.add(this.turretGroup);
         this.gltfModel = model;
+        this.modelRotationOffset = Math.PI;
         
         if (isPlayer) {
             console.log('Tank oriented correctly! Using group for turret');
@@ -490,9 +486,11 @@ class Tank {
 
     getBarrelTip() {
         if (this.gltfModel) {
+            const forward = new THREE.Vector3(0, 0, -1);
+            forward.applyQuaternion(this.group.quaternion);
             const pos = this.group.position.clone();
             pos.y += 1;
-            pos.x += this.isPlayer ? 4 : -4;
+            pos.addScaledVector(forward, 4);
             return pos;
         }
         return this.turretGroup.localToWorld(new THREE.Vector3(0, 0.2, -3.0));
@@ -500,7 +498,10 @@ class Tank {
 
     getBarrelDirection() {
         if (this.gltfModel) {
-            return new THREE.Vector3(this.isPlayer ? -1 : 1, 0, 0);
+            const forward = new THREE.Vector3(0, 0, -1);
+            forward.applyQuaternion(this.group.quaternion);
+            forward.normalize();
+            return forward;
         }
         return new THREE.Vector3(0, 0, -1);
     }

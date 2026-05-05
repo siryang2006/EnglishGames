@@ -32,7 +32,7 @@ class Animal {
     loadGLTFModel() {
         const model = ModelLoader.getAnimals();
         if (model) {
-            model.scale.setScalar(0.8);
+            model.scale.setScalar(0.15);
             model.rotation.y = Math.PI;
             this.group.add(model);
             this.usingGltf = true;
@@ -224,6 +224,7 @@ const AnimalManager = {
             const dist = 40 + Math.random() * 60;
             animal.group.position.set(Math.sin(angle) * dist, 0, Math.cos(angle) * dist);
             animal.runTimer = 0;
+            console.log('Spawned', type, 'at', animal.group.position.x.toFixed(1), animal.group.position.z.toFixed(1));
             this.animals.push(animal);
         }
     },

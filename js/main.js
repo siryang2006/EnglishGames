@@ -184,17 +184,31 @@ init() {
         const scope = document.getElementById('scope-overlay');
         if (scope) scope.style.display = this.aiming ? 'block' : 'none';
 
-        p.group.rotation.y = this.playerYaw;
-        p.turretGroup.rotation.y = 0;
+        if (p.gltfModel) {
+            p.gltfModel.rotation.y = p.modelRotationOffset || 0;
+            p.gltfModel.rotation.x = 0;
+        }
 
         if (moveX !== 0 || moveZ !== 0) {
-            const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerYaw);
-            const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerYaw);
-            const moveDir = new THREE.Vector3();
-            moveDir.addScaledVector(forward, -moveZ);
-            moveDir.addScaledVector(right, moveX);
-            moveDir.normalize();
+            const moveDir = new THREE.Vector3(moveX, 0, moveZ).normalize();
+            // Calculate target angle: W (moveZ=-1) corresponds to Rotation 0.
+            // Math.atan2(y, x) with y=x_coord, x=-z_coord maps -Z to Angle 0.
+            // Calculate target angle: -Z (Group Forward) aligns with moveDir.
+            const targetAngle = Math.atan2(-moveDir.x, -moveDir.z);
+            
+            let angleDiff = targetAngle - p.group.rotation.y;
+            // Normalize angle difference to [-PI, PI]
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            
+            const rotSpeed = 10 * dt;
+            if (Math.abs(angleDiff) > 0.01) {
+                p.group.rotation.y += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), rotSpeed);
+            } else {
+                p.group.rotation.y = targetAngle;
+            }
 
+            // Move in the input direction (World Space)
             const oldPos = p.group.position.clone();
             p.group.position.addScaledVector(moveDir, p.speed * dt);
             if (this.checkObstacleCollision(p.group.position, 2.0)) p.group.position.copy(oldPos);
@@ -244,7 +258,7 @@ init() {
             dir.normalize();
         }
         
-        console.log('Firing direction:', dir.x, dir.y, dir.z);
+        console.log('Firing direction:', dir.x, dir.y, dir.z, 'tank rotation:', p.group.rotation.y);
         BulletManager.fire(GameScene.scene, p.getBarrelTip(), dir, true);
     },
 

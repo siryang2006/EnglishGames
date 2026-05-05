@@ -55,10 +55,25 @@ const ModelLoader = {
         return this.building ? this.building.clone() : null;
     },
     getAnimals() {
-        return this.animals ? this.animals.clone() : null;
+        if (!this.animals) return null;
+        const clone = this.animals.clone();
+        clone.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        return clone;
     },
     getSoldier() {
-        return this.soldier ? this.soldier.clone() : null;
+        if (!this.soldier) {
+            console.log('getSoldier: this.soldier is null');
+            return null;
+        }
+        let meshCount = 0;
+        this.soldier.traverse(c => { if (c.isMesh) meshCount++; });
+        console.log('getSoldier: found', meshCount, 'meshes');
+        return this.soldier.clone();
     }
 };
 

@@ -5,7 +5,7 @@ const TankGLTFLoader = {
     modelReady: false,
     loading: false,
     modelRotationY: Math.PI,
-    enemyModelRotationY: Math.PI,
+    enemyModelRotationY: 0,
     barrelDirection: -1,
 
 load(scene, onLoad, onError) {

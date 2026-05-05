@@ -85,8 +85,11 @@ const UI = {
         const cx = canvas.width / 2 + (Math.random() - 0.5) * 200;
         const cy = canvas.height / 2 + (Math.random() - 0.5) * 150;
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(255, 200, 200, 0.8)';
+        ctx.lineWidth = 2.5;
+        
+        ctx.shadowColor = 'rgba(255, 100, 100, 0.5)';
+        ctx.shadowBlur = 8;
 
         for (let i = 0; i < 12; i++) {
             ctx.beginPath();
@@ -133,8 +136,9 @@ const UI = {
         }
 
         const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 400);
-        gradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
-        gradient.addColorStop(1, 'rgba(255, 0, 0, 0.6)');
+        gradient.addColorStop(0, 'rgba(255, 50, 50, 0.15)');
+        gradient.addColorStop(0.5, 'rgba(200, 30, 30, 0.1)');
+        gradient.addColorStop(1, 'rgba(100, 20, 20, 0)');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 

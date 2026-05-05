@@ -5,7 +5,14 @@
       "Bash(node --check \"D:/project/demos/EnglishGames/js/tank.js\")",
       "Bash(node --check \"D:/project/demos/EnglishGames/js/explosion.js\")",
       "Bash(node --check \"D:/project/demos/EnglishGames/js/scene.js\")",
-      "Bash(node --check \"D:/project/demos/EnglishGames/js/soldier.js\")"
+      "Bash(node --check \"D:/project/demos/EnglishGames/js/soldier.js\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh api *)",
+      "Bash(where gh *)",
+      "Bash(git -C 'D:/project/demos/EnglishGames' config --get credential.helper)",
+      "Bash(curl -s -X POST https://api.github.com/repos/siryang2006/EnglishGames/pages -H 'Accept: application/vnd.github+json' -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -d '{\"source\":{\"branch\":\"main\",\"path\":\"/\"}}')"
     ]
   }
 }

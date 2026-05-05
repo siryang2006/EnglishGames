@@ -12,7 +12,6 @@ class Soldier {
         this.patrolTimer = 0;
         this.word = null;
         this.letter = '';
-        this.usingGltf = false;
 
         this.buildModel();
         this.createHealthBar();
@@ -25,10 +24,10 @@ class Soldier {
     }
 
     buildModel() {
-        if (typeof ModelLoader !== 'undefined' && ModelLoader.soldier) {
-            this.loadGLTFModel();
-            return;
-        }
+        this.buildPrimitiveModel();
+    }
+
+    buildPrimitiveModel() {
         
         const skinColor = 0xddaa77;
         const uniformColor = this.isPlayerTeam ? 0x3a6b3a : 0x6b2020;
@@ -87,16 +86,6 @@ class Soldier {
         this.group.add(gunStock);
     }
 
-    loadGLTFModel() {
-        const model = ModelLoader.getSoldier();
-        if (model) {
-            model.scale.setScalar(1.5);
-            this.group.add(model);
-            this.usingGltf = true;
-            console.log('Soldier: using GLTF model');
-        }
-    }
-
     createHealthBar() {
         const canvas = document.createElement('canvas');
         canvas.width = 64;
@@ -138,13 +127,7 @@ class Soldier {
     updateAI(dt) {
         if (!this.alive) return;
 
-        if (!this.usingGltf && typeof ModelLoader !== 'undefined' && ModelLoader.loaded && ModelLoader.soldier) {
-            console.log('Upgrading soldier to GLTF');
-            while (this.group.children.length > 2) {
-                this.group.remove(this.group.children[0]);
-            }
-            this.loadGLTFModel();
-        }
+        // No GLTF upgrade
 
         this.patrolTimer -= dt;
         if (this.patrolTimer <= 0) {
@@ -234,9 +217,10 @@ const SoldierManager = {
         for (let i = 0; i < count; i++) {
             const s = new Soldier(this.scene, true);
             const angle = (i / count) * Math.PI * 2;
-            const dist = 8 + Math.random() * 5;
+            const dist = 5 + Math.random() * 3;
             s.group.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
             s.patrolCenter.copy(s.group.position);
+            console.log('Spawned friendly soldier at', s.group.position.x.toFixed(1), s.group.position.z.toFixed(1));
             this.soldiers.push(s);
         }
     },
@@ -248,6 +232,7 @@ const SoldierManager = {
             const dist = 35 + Math.random() * 30;
             s.group.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
             s.patrolCenter.copy(s.group.position);
+            console.log('Spawned enemy soldier at', s.group.position.x.toFixed(1), s.group.position.z.toFixed(1));
             this.soldiers.push(s);
         }
     },
