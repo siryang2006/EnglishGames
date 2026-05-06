@@ -31,35 +31,26 @@ class Animal {
 
     loadGLTFModel() {
         let model = null;
+        let scale = 0.15; // default scale
         switch(this.type) {
-            case 'deer': model = ModelLoader.getDeer(); break;
-            case 'low_poly_deer': model = ModelLoader.getLowPolyDeer(); break;
-            case 'horse': model = ModelLoader.getHorse(); break;
-            case 'horse_rigged': model = ModelLoader.getHorseRigged(); break;
-            case 'duck': model = ModelLoader.getDuck(); break;
-            case 'parrot': model = ModelLoader.getParrot(); break;
-            case 'flamingo': model = ModelLoader.getFlamingo(); break;
-            case 'flamingo2': model = ModelLoader.getFlamingo2(); break;
-            case 'tiger': model = ModelLoader.getTiger(); break;
-            case 'cow': model = ModelLoader.getCow(); break;
-            default: model = ModelLoader.getDeer();
+            case 'deer': model = ModelLoader.getDeer(); scale = 0.15; break;
+            case 'low_poly_deer': model = ModelLoader.getLowPolyDeer(); scale = 0.15; break;
+            case 'horse': model = ModelLoader.getHorse(); scale = 0.012; break;
+            case 'horse_rigged': model = ModelLoader.getHorseRigged(); scale = 0.012; break;
+            case 'duck': model = ModelLoader.getDuck(); scale = 0.2; break;
+            case 'parrot': model = ModelLoader.getParrot(); scale = 0.2; break;
+            case 'flamingo': model = ModelLoader.getFlamingo(); scale = 0.15; break;
+            case 'flamingo2': model = ModelLoader.getFlamingo2(); scale = 0.15; break;
+            case 'tiger': model = ModelLoader.getTiger(); scale = 0.01; break;
+            case 'cow': model = ModelLoader.getCow(); scale = 0.01; break;
+            default: model = ModelLoader.getDeer(); scale = 0.15;
         }
         if (model) {
-            // Auto-scale: adjust model to ~2.0 units in length
-            const bbox = new THREE.Box3().setFromObject(model);
-            const size = bbox.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const targetSize = 2.0;
-            const scale = maxDim > 0 ? targetSize / maxDim : 0.15;
-            
             model.scale.setScalar(scale);
-            // Reset rotation and set appropriate orientation
-            model.rotation.set(0, 0, 0);
-            // Most GLTF models face +Z; our tank faces +X, so rotate -90° around Y
-            model.rotation.y = -Math.PI / 2;
+            model.rotation.y = Math.PI; // face -X to match tank forward
             this.group.add(model);
             this.usingGltf = true;
-            console.log(`Animal ${this.type}: size=${size.toArray()} scale=${scale.toFixed(3)}`);
+            console.log('Animal:', this.type, 'scale:', scale, 'children:', model.children.length);
         } else {
             console.warn('Animal: no GLTF model for', this.type, ', using procedural');
             this.buildProcedural();
