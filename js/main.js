@@ -164,12 +164,31 @@ init() {
     handleInput(dt) {
         if (!this.player || !this.player.alive) return;
         const p = this.player;
-        let moveX = 0, moveZ = 0;
+        const rotSpeed = p.rotSpeed || 3;
 
-        if (InputManager.isKeyDown('KeyW')) moveZ = -1;
-        if (InputManager.isKeyDown('KeyS')) moveZ = 1;
-        if (InputManager.isKeyDown('KeyA')) moveX = -1;
-        if (InputManager.isKeyDown('KeyD')) moveX = 1;
+        // A/D 旋转：A右转，D左转
+        let deltaRot = 0;
+        if (InputManager.isKeyDown('KeyA')) deltaRot += rotSpeed * dt;
+        if (InputManager.isKeyDown('KeyD')) deltaRot -= rotSpeed * dt;
+        p.group.rotation.y += deltaRot;
+
+        // W/S 前进后退
+        let moveForward = 0;
+        if (InputManager.isKeyDown('KeyW')) moveForward = 1;
+        if (InputManager.isKeyDown('KeyS')) moveForward = -1;
+
+        if (moveForward !== 0) {
+            const forwardDir = new THREE.Vector3(1, 0, 0).applyQuaternion(p.group.quaternion);
+            forwardDir.y = 0;
+            forwardDir.normalize();
+            const oldPos = p.group.position.clone();
+            p.group.position.addScaledVector(forwardDir, moveForward * p.speed * dt);
+            if (this.checkObstacleCollision(p.group.position, 2.0)) p.group.position.copy(oldPos);
+
+            const bound = 85;
+            p.group.position.x = Math.max(-bound, Math.min(bound, p.group.position.x));
+            p.group.position.z = Math.max(-bound, Math.min(bound, p.group.position.z));
+        }
 
         this.aiming = InputManager.rightMouseDown || InputManager.isKeyDown('KeyR');
         const sensitivity = this.aiming ? 0.002 : 0.003;
@@ -187,35 +206,6 @@ init() {
         if (p.gltfModel) {
             p.gltfModel.rotation.y = p.modelRotationOffset || 0;
             p.gltfModel.rotation.x = 0;
-        }
-
-        if (moveX !== 0 || moveZ !== 0) {
-            const moveDir = new THREE.Vector3(moveX, 0, moveZ).normalize();
-            // Tank model faces +X. Group rotation should align +X with moveDir.
-            // +X (0 deg) => angle = 0
-            // -X (180 deg) => angle = PI
-            // +Z (90 deg right) => angle = PI/2
-            // -Z (90 deg left) => angle = -PI/2
-            const targetAngle = Math.atan2(moveDir.z, moveDir.x);
-            
-            let angleDiff = targetAngle - p.group.rotation.y;
-            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-            
-            const rotSpeed = 10 * dt;
-            if (Math.abs(angleDiff) > 0.01) {
-                p.group.rotation.y += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), rotSpeed);
-            } else {
-                p.group.rotation.y = targetAngle;
-            }
-
-            const oldPos = p.group.position.clone();
-            p.group.position.addScaledVector(moveDir, p.speed * dt);
-            if (this.checkObstacleCollision(p.group.position, 2.0)) p.group.position.copy(oldPos);
-
-            const bound = 85;
-            p.group.position.x = Math.max(-bound, Math.min(bound, p.group.position.x));
-            p.group.position.z = Math.max(-bound, Math.min(bound, p.group.position.z));
         }
 
         if (p.playerRing) {
