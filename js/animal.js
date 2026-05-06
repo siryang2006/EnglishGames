@@ -22,11 +22,9 @@ class Animal {
     }
 
     buildModel() {
-        if (typeof ModelLoader !== 'undefined') {
-            this.loadGLTFModel();
-        } else {
-            this.buildProcedural();
-        }
+        // Temporarily disable GLTF models to ensure animals display correctly
+        // Will re-enable after debugging
+        this.buildProcedural();
     }
 
     loadGLTFModel() {
@@ -332,8 +330,8 @@ const AnimalManager = {
     },
 
     spawn(count) {
-        // Stick to known working models first; tiger/cow are too large and need manual scaling
-        const types = ['deer', 'low_poly_deer', 'horse', 'duck', 'parrot', 'flamingo', 'flamingo2', 'boar'];
+        // Use simple type list for procedural models
+        const types = ['deer', 'horse', 'duck', 'cow', 'boar'];
         for (let i = 0; i < count; i++) {
             const type = types[Math.floor(Math.random() * types.length)];
             const animal = new Animal(this.scene, type);
