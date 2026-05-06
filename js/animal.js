@@ -41,8 +41,12 @@ class Animal {
             case 'parrot': model = ModelLoader.getParrot(); scale = 0.2; break;
             case 'flamingo': model = ModelLoader.getFlamingo(); scale = 0.15; break;
             case 'flamingo2': model = ModelLoader.getFlamingo2(); scale = 0.15; break;
-            case 'tiger': model = ModelLoader.getTiger(); scale = 0.01; break;
-            case 'cow': model = ModelLoader.getCow(); scale = 0.01; break;
+            // Tiger/Cow temporarily disabled - use procedural
+            case 'tiger': 
+            case 'cow':
+                console.log('Animal:', this.type, 'using procedural model (GLTF too large)');
+                this.buildProcedural();
+                return;
             default: model = ModelLoader.getDeer(); scale = 0.15;
         }
         if (model) {
@@ -328,7 +332,8 @@ const AnimalManager = {
     },
 
     spawn(count) {
-        const types = ['deer', 'low_poly_deer', 'horse', 'horse_rigged', 'duck', 'parrot', 'flamingo', 'flamingo2', 'tiger', 'cow', 'boar'];
+        // Stick to known working models first; tiger/cow are too large and need manual scaling
+        const types = ['deer', 'low_poly_deer', 'horse', 'duck', 'parrot', 'flamingo', 'flamingo2', 'boar'];
         for (let i = 0; i < count; i++) {
             const type = types[Math.floor(Math.random() * types.length)];
             const animal = new Animal(this.scene, type);
