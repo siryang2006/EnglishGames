@@ -235,22 +235,27 @@ class Animal {
     createLetterLabel() {
         if (!this.letter) return;
         const canvas = document.createElement('canvas');
-        canvas.width = 128;
-        canvas.height = 64;
+        canvas.width = 256;
+        canvas.height = 128;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, 128, 64);
+        ctx.fillRect(0, 0, 256, 128);
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 40px Arial';
+        ctx.font = 'bold 36px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(this.letter, 64, 32);
+        // Also show animal type for debugging
+        ctx.font = 'bold 20px Arial';
+        ctx.fillStyle = '#ff0';
+        ctx.fillText(this.type, 128, 80);
+        ctx.fillText(this.word.cn || '', 128, 110);
 
         const texture = new THREE.CanvasTexture(canvas);
         const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
         const sprite = new THREE.Sprite(spriteMat);
-        sprite.scale.set(1.5, 0.75, 1);
-        sprite.position.y = 2.5;
+        sprite.scale.set(3.0, 1.5, 1);
+        sprite.position.y = 3.0;
         this.group.add(sprite);
         this.letterSprite = sprite;
     };
