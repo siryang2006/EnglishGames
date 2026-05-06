@@ -5,7 +5,8 @@ class Animal {
         this.group = new THREE.Group();
         this.alive = true;
         this.health = 30;
-        this.speed = type === 'deer' ? 5 : 7;
+        this.speed = (type === 'deer' || type === 'low_poly_deer') ? 5 : 
+                     (type === 'tiger' || type === 'cow') ? 6 : 7;
         this.runTimer = 0;
         this.runDir = new THREE.Vector3();
         this.idleTimer = 2 + Math.random() * 4;
@@ -14,6 +15,7 @@ class Animal {
         this.letter = this.word.en;
         this.usingGltf = false;
 
+        console.log('Creating animal type:', type, 'speed:', this.speed);
         this.buildModel();
         this.createLetterLabel();
         scene.add(this.group);
@@ -43,12 +45,23 @@ class Animal {
             default: model = ModelLoader.getDeer();
         }
         if (model) {
-            model.scale.setScalar(0.15);
-            model.rotation.y = Math.PI;
+            // Auto-scale: adjust model to ~2.0 units in length
+            const bbox = new THREE.Box3().setFromObject(model);
+            const size = bbox.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const targetSize = 2.0;
+            const scale = maxDim > 0 ? targetSize / maxDim : 0.15;
+            
+            model.scale.setScalar(scale);
+            // Reset rotation and set appropriate orientation
+            model.rotation.set(0, 0, 0);
+            // Most GLTF models face +Z; our tank faces +X, so rotate -90° around Y
+            model.rotation.y = -Math.PI / 2;
             this.group.add(model);
             this.usingGltf = true;
-            console.log('Animal: using GLTF model for', this.type);
+            console.log(`Animal ${this.type}: size=${size.toArray()} scale=${scale.toFixed(3)}`);
         } else {
+            console.warn('Animal: no GLTF model for', this.type, ', using procedural');
             this.buildProcedural();
         }
     }

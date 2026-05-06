@@ -189,10 +189,12 @@ const ModelLoader = {
             return null;
         }
         const clone = this.tigerModel.clone();
+        console.log('Tiger model loaded, children:', clone.children.length);
         clone.traverse((child) => {
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
+                console.log('Tiger mesh:', child.name, 'position:', child.position.toArray());
             }
         });
         return clone;
@@ -203,10 +205,12 @@ const ModelLoader = {
             return null;
         }
         const clone = this.cowModel.clone();
+        console.log('Cow model loaded, children:', clone.children.length);
         clone.traverse((child) => {
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
+                console.log('Cow mesh:', child.name, 'position:', child.position.toArray());
             }
         });
         return clone;
