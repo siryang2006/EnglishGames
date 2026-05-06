@@ -20,28 +20,135 @@ class Animal {
     }
 
     buildModel() {
-        if (typeof ModelLoader !== 'undefined' && ModelLoader.animals) {
+        if (typeof ModelLoader !== 'undefined') {
             this.loadGLTFModel();
-        } else if (this.type === 'deer') {
-            this.buildDeer();
         } else {
-            this.buildBoar();
+            this.buildProcedural();
         }
     }
 
     loadGLTFModel() {
-        const model = ModelLoader.getAnimals();
+        let model = null;
+        switch(this.type) {
+            case 'deer': model = ModelLoader.getDeer(); break;
+            case 'low_poly_deer': model = ModelLoader.getLowPolyDeer(); break;
+            case 'horse': model = ModelLoader.getHorse(); break;
+            case 'horse_rigged': model = ModelLoader.getHorseRigged(); break;
+            case 'duck': model = ModelLoader.getDuck(); break;
+            case 'parrot': model = ModelLoader.getParrot(); break;
+            case 'flamingo': model = ModelLoader.getFlamingo(); break;
+            case 'flamingo2': model = ModelLoader.getFlamingo2(); break;
+            case 'tiger': model = ModelLoader.getTiger(); break;
+            case 'cow': model = ModelLoader.getCow(); break;
+            default: model = ModelLoader.getDeer();
+        }
         if (model) {
             model.scale.setScalar(0.15);
             model.rotation.y = Math.PI;
             this.group.add(model);
             this.usingGltf = true;
-            console.log('Animal: using GLTF model');
+            console.log('Animal: using GLTF model for', this.type);
         } else {
-            if (this.type === 'deer') this.buildDeer();
-            else this.buildBoar();
+            this.buildProcedural();
         }
-    };
+    }
+
+    buildProcedural() {
+        if (this.type === 'deer' || this.type === 'low_poly_deer') {
+            this.buildDeer();
+        } else if (this.type === 'horse' || this.type === 'horse_rigged') {
+            this.buildHorse();
+        } else if (this.type === 'tiger') {
+            this.buildTiger();
+        } else if (this.type === 'cow') {
+            this.buildCow();
+        } else if (this.type === 'duck' || this.type === 'parrot') {
+            this.buildBird();
+        } else if (this.type === 'flamingo' || this.type === 'flamingo2') {
+            this.buildFlamingo();
+        } else {
+            this.buildBoar();
+        }
+    }
+
+    buildTiger() {
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xFFA500, roughness: 0.8 });
+        const stripeMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.8 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 1.4), bodyMat);
+        body.position.y = 0.8; body.castShadow = true;
+        this.group.add(body);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.4), bodyMat);
+        head.position.set(0, 1.1, -0.7); this.group.add(head);
+        const legMat = new THREE.MeshStandardMaterial({ color: 0xCC5500, roughness: 0.8 });
+        for (let i = 0; i < 4; i++) {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.7, 0.12), legMat);
+            const side = i < 2 ? 0.25 : -0.25;
+            const front = i % 2 === 0 ? 0.5 : -0.5;
+            leg.position.set(side, 0.35, front); leg.castShadow = true;
+            this.group.add(leg);
+        }
+    }
+
+    buildCow() {
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.8 });
+        const spotMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.8 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.6, 1.6), bodyMat);
+        body.position.y = 0.8; body.castShadow = true;
+        this.group.add(body);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.5), bodyMat);
+        head.position.set(0, 1.2, -0.9); this.group.add(head);
+        const legMat = new THREE.MeshStandardMaterial({ color: 0xCCCCCC, roughness: 0.8 });
+        for (let i = 0; i < 4; i++) {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), legMat);
+            const side = i < 2 ? 0.35 : -0.35;
+            const front = i % 2 === 0 ? 0.6 : -0.6;
+            leg.position.set(side, 0.4, front); leg.castShadow = true;
+            this.group.add(leg);
+        }
+    }
+
+    buildHorse() {
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 1.4), bodyMat);
+        body.position.y = 1.0; body.castShadow = true;
+        this.group.add(body);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.5), bodyMat);
+        head.position.set(0, 1.3, -0.7); this.group.add(head);
+        const legMat = new THREE.MeshStandardMaterial({ color: 0x663300, roughness: 0.8 });
+        for (let i = 0; i < 4; i++) {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.15), legMat);
+            const side = i < 2 ? 0.25 : -0.25;
+            const front = i % 2 === 0 ? 0.5 : -0.5;
+            leg.position.set(side, 0.5, front); leg.castShadow = true;
+            this.group.add(leg);
+        }
+    }
+
+    buildBird() {
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x228B22, roughness: 0.8 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.6), bodyMat);
+        body.position.y = 1.0; body.castShadow = true;
+        this.group.add(body);
+        const wing = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.4), bodyMat);
+        wing.position.set(0, 1.1, 0); this.group.add(wing);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.3), bodyMat);
+        head.position.set(0, 1.2, -0.4); this.group.add(head);
+    }
+
+    buildFlamingo() {
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xFF69B4, roughness: 0.8 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.6, 0.4), bodyMat);
+        body.position.y = 1.2; body.castShadow = true;
+        this.group.add(body);
+        const neck = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), bodyMat);
+        neck.position.set(0, 1.8, -0.2); this.group.add(neck);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.3), bodyMat);
+        head.position.set(0, 2.3, -0.3); this.group.add(head);
+        const legMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.8 });
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.1), legMat);
+        leg.position.set(0, 0.5, 0.2); leg.castShadow = true;
+        this.group.add(leg);
+    }
 
     buildDeer() {
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0xaa7744, roughness: 0.8 });
@@ -217,8 +324,9 @@ const AnimalManager = {
     },
 
     spawn(count) {
+        const types = ['deer', 'low_poly_deer', 'horse', 'horse_rigged', 'duck', 'parrot', 'flamingo', 'flamingo2', 'tiger', 'cow', 'boar'];
         for (let i = 0; i < count; i++) {
-            const type = Math.random() > 0.5 ? 'deer' : 'boar';
+            const type = types[Math.floor(Math.random() * types.length)];
             const animal = new Animal(this.scene, type);
             const angle = Math.random() * Math.PI * 2;
             const dist = 40 + Math.random() * 60;
