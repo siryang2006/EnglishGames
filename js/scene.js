@@ -199,13 +199,30 @@ init() {
             const gModel = ModelLoader.getGround();
             if (gModel) {
                 let meshCount = 0;
-                gModel.traverse(c => { if (c.isMesh) meshCount++; });
-                console.log('GLTF ground meshes:', meshCount);
+                const maxAnisotropy = this.renderer ? this.renderer.capabilities.getMaxAnisotropy() : 1;
 
-                // 设置材质使用 HDR 环境光
                 gModel.traverse((child) => {
                     if (child.isMesh && child.material) {
+                        child.material = child.material.clone();
                         child.material.envMapIntensity = 1.0;
+
+                        // 优化纹理过滤，提高清晰度
+                        if (child.material.map) {
+                            child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
+                            child.material.map.magFilter = THREE.LinearFilter;
+                            child.material.map.anisotropy = maxAnisotropy;
+                            child.material.map.needsUpdate = true;
+                        }
+                        if (child.material.normalMap) {
+                            child.material.normalMap.anisotropy = maxAnisotropy;
+                        }
+                        if (child.material.roughnessMap) {
+                            child.material.roughnessMap.anisotropy = maxAnisotropy;
+                        }
+                        if (child.material.metalnessMap) {
+                            child.material.metalnessMap.anisotropy = maxAnisotropy;
+                        }
+
                         child.castShadow = true;
                         child.receiveShadow = true;
                     }
@@ -270,6 +287,8 @@ init() {
         texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(8, 8);
         texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
 
         const ground = new THREE.Mesh(
             new THREE.PlaneGeometry(size, size, 64, 64),
