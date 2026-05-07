@@ -514,26 +514,28 @@ init() {
             positions.forEach(p => {
                 const model = ModelLoader.getBuilding();
                 if (model) {
-                    // 设置材质使用 HDR 环境光
-                    model.traverse((child) => {
+                    // 克隆模型避免修改原始模型
+                    const modelClone = model.clone();
+                    modelClone.traverse((child) => {
                         if (child.isMesh && child.material) {
+                            child.material = child.material.clone();
                             child.material.envMapIntensity = 1.0;
                             child.castShadow = true;
                             child.receiveShadow = true;
                         }
                     });
-                    model.scale.setScalar(0.8);
-                    model.position.set(p.x, 0, p.z);
-                    this.scene.add(model);
+                    modelClone.scale.setScalar(0.8);
+                    modelClone.position.set(p.x, 0, p.z);
+                    this.scene.add(modelClone);
                     const bData = {
-                        group: model,
+                        group: modelClone,
                         health: 150,
                         alive: true,
                         position: new THREE.Vector3(p.x, 0, p.z),
                         radius: 3
                     };
                     const wordLabel = this.createWordLabel(WordManager.getRandomWord(), 8);
-                    model.add(wordLabel.sprite);
+                    modelClone.add(wordLabel.sprite);
                     bData.word = wordLabel.word;
                     bData.letter = wordLabel.word.en;
                     bData._drawLabel = wordLabel.drawLabel;
