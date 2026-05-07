@@ -97,10 +97,13 @@ const Game = {
 
         UI.reset();
         const canvas = document.getElementById('gameCanvas');
+        // Pointer lock 需要在用户手势中调用，用 try-catch 包裹
         try {
-            canvas.requestPointerLock();
+            if (canvas.requestPointerLock) {
+                canvas.requestPointerLock();
+            }
         } catch(e) {
-            console.warn('Pointer lock failed:', e);
+            console.warn('Pointer lock failed:', e.message);
         }
         this.loop();
     },

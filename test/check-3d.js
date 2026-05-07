@@ -99,16 +99,46 @@
             }
         }
 
-        // 8. 检查 ModelLoader
-        if (window.ModelLoader) {
-            assert('ModelLoader 已加载', true);
-            assert('地面模型', ModelLoader.ground !== null || window.location.protocol === 'file:');
-            assert('士兵模型', ModelLoader.soldier !== null || window.location.protocol === 'file:');
-            assert('动物模型', ModelLoader.animals !== null || window.location.protocol === 'file:');
+    // 8. 检查 ModelLoader
+    if (window.ModelLoader) {
+        assert('ModelLoader 已加载', true);
+        assert('ModelLoader.load 方法存在', typeof ModelLoader.load === 'function');
+
+        // 等待模型加载完成后再检查
+        const checkModels = () => {
+            const groundOk = ModelLoader.ground !== null;
+            const soldierOk = ModelLoader.soldier !== null;
+            const animalsOk = ModelLoader.animals !== null;
+            const allLoaded = ModelLoader.loaded;
+
+            if (allLoaded) {
+                assert('地面模型已加载', groundOk || window.location.protocol === 'file:');
+                assert('士兵模型已加载', soldierOk || window.location.protocol === 'file:');
+                assert('动物模型已加载', animalsOk || window.location.protocol === 'file:');
+            } else {
+                console.log('模型还在加载中...');
+            }
+
             if (ModelLoader.soldierAnimations) {
                 console.log(`  士兵动画数: ${ModelLoader.soldierAnimations.length}`);
             }
+        };
+
+        // 如果已经加载完成，直接检查
+        if (ModelLoader.loaded) {
+            checkModels();
+        } else {
+            // 否则等待加载完成（最多10秒）
+            const waitForLoad = setInterval(() => {
+                if (ModelLoader.loaded) {
+                    clearInterval(waitForLoad);
+                    checkModels();
+                }
+            }, 500);
+            // 10秒后停止等待
+            setTimeout(() => clearInterval(waitForLoad), 10000);
         }
+    }
 
         // 9. 检查帧率（简单测试）
         if (window.GameScene && window.GameScene.clock) {

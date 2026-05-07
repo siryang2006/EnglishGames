@@ -2,11 +2,40 @@
 const { test, expect } = require('@playwright/test');
 
 test.describe('游戏基础加载测试', () => {
+    let consoleErrors = [];
+    let consoleWarnings = [];
+
+    test.beforeEach(async ({ page }) => {
+        // 监听控制台消息
+        consoleErrors = [];
+        consoleWarnings = [];
+        page.on('console', msg => {
+            if (msg.type() === 'error') {
+                consoleErrors.push(msg.text());
+            } else if (msg.type() === 'warning') {
+                consoleWarnings.push(msg.text());
+            }
+        });
+        page.on('pageerror', error => {
+            consoleErrors.push('PAGE ERROR: ' + error.message);
+        });
+    });
+
     test('页面能正常打开', async ({ page }) => {
         await page.goto('http://localhost:8000', { timeout: 10000 });
         await page.waitForSelector('#start-screen', { timeout: 5000 });
         const title = await page.title();
         expect(title).toContain('英语坦克大战');
+
+        // 检查控制台是否有严重错误
+        const criticalErrors = consoleErrors.filter(e =>
+            !e.includes('favicon') &&
+            !e.includes('NotAllowedError') &&
+            !e.includes('Custom UV set')
+        );
+        if (criticalErrors.length > 0) {
+            console.log('控制台错误:', criticalErrors);
+        }
     });
 
     test('Three.js 已加载', async ({ page }) => {
@@ -34,7 +63,9 @@ test.describe('游戏基础加载测试', () => {
                 hasGameScene: !!window.GameScene,
                 hasPlayer: !!window.Game?.player,
                 hasRenderer: !!window.GameScene?.renderer,
-                hasScene: !!window.GameScene?.scene
+                hasScene: !!window.GameScene?.scene,
+                // 检查是否有黑屏（场景子对象数量）
+                sceneChildren: window.GameScene?.scene?.children?.length || 0
             };
         });
 
@@ -43,6 +74,18 @@ test.describe('游戏基础加载测试', () => {
         expect(gameStatus.hasPlayer).toBeTruthy();
         expect(gameStatus.hasRenderer).toBeTruthy();
         expect(gameStatus.hasScene).toBeTruthy();
+        expect(gameStatus.sceneChildren).toBeGreaterThan(5); // 至少要有几个对象
+
+        // 检查控制台是否有严重错误
+        const criticalErrors = consoleErrors.filter(e =>
+            !e.includes('favicon') &&
+            !e.includes('NotAllowedError') &&
+            !e.includes('Custom UV set') &&
+            !e.includes('Pointer Lock')
+        );
+        if (criticalErrors.length > 0) {
+            console.log('⚠ 控制台错误:', criticalErrors);
+        }
 
         console.log('游戏状态:', gameStatus);
     });
