@@ -30,6 +30,8 @@ const Game = {
             try {
                 TankGLTFLoader.load(GameScene.scene, (model) => {
                     console.log('Real Abrams tank model ready, size:', model ? model.scale.x : 'default');
+                    // 模型加载完成后，如果游戏还没开始，标记就绪
+                    window.tankModelReady = true;
                 }, (err) => {
                     console.warn('Tank model load failed, using default:', err.message || err);
                 });
@@ -42,6 +44,7 @@ const Game = {
             try {
                 ModelLoader.load(GameScene.scene, () => {
                     console.log('All models loaded!');
+                    window.allModelsReady = true;
                 });
             } catch(e) {
                 console.warn('ModelLoader exception:', e.message);
@@ -50,6 +53,13 @@ const Game = {
     },
 
     start() {
+        // 等待坦克模型加载完成
+        if (typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.loading) {
+            console.log('Waiting for tank model to load...');
+            setTimeout(() => this.start(), 100);
+            return;
+        }
+
         this.score = 0;
         this.kills = 0;
         this.ammo = 15;

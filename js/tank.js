@@ -41,7 +41,29 @@ class Tank {
     }
 
     loadGLTFModel(isPlayer) {
-        if (typeof TankGLTFLoader === 'undefined' || !TankGLTFLoader.playerModel) {
+        // 检查模型是否已加载完成
+        const modelReady = typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.playerModel;
+        const modelLoading = typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.loading;
+
+        if (!modelReady) {
+            if (modelLoading) {
+                console.log('Tank: model is loading, waiting...');
+                const checkModel = setInterval(() => {
+                    if (TankGLTFLoader.playerModel) {
+                        clearInterval(checkModel);
+                        this.loadGLTFModel(isPlayer); // 递归调用，这次应该成功
+                    }
+                }, 100);
+                return; // 等待中，先返回
+            }
+            console.log('Tank: using procedural model (GLTF not available)');
+            this.buildDetailedModel();
+            this.collectProceduralTreads();
+            return;
+        }
+                }, 100);
+                return; // 等待中，先返回
+            }
             console.log('Using procedural tank model');
             this.buildDetailedModel();
             this.collectProceduralTreads();
