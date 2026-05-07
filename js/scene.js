@@ -51,7 +51,7 @@ init() {
         this.createEnvironment();
         this.createDustParticles();
 
-        this.checkAndAddGLTFGround();
+        // 移除已删除的 checkAndAddGLTFGround 调用
 
         window.addEventListener('resize', () => this.onResize());
         console.log('GameScene.init complete');
@@ -433,11 +433,12 @@ init() {
         this.barrels = [];
         this.ships = [];
         this.obstacles = [];
-        this.createPalmTrees();
-        this.createRocks();
-        this.createBeachHuts();
-        this.createBarrels();
-        this.createShips();
+
+        try { this.createPalmTrees(); } catch(e) { console.warn('createPalmTrees failed:', e.message); }
+        try { this.createRocks(); } catch(e) { console.warn('createRocks failed:', e.message); }
+        try { this.createBeachHuts(); } catch(e) { console.warn('createBeachHuts failed:', e.message); }
+        try { this.createBarrels(); } catch(e) { console.warn('createBarrels failed:', e.message); }
+        try { this.createShips(); } catch(e) { console.warn('createShips failed:', e.message); }
     },
 
     createPalmTrees() {
