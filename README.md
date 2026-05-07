@@ -38,12 +38,15 @@
 ### 陆地系统
 - **GLTF 地面模型**：优先使用 `models/ground.glb`（159MB 高精度地形）
 - **PBR 材质**：金属度/粗糙度/环境光反射
+- **各向异性过滤**：`anisotropy = max` 确保纹理清晰
 - **降级方案**：GLTF 未加载时使用程序化纹理地面
 
 ### 建筑系统
 - **GLTF 房屋模型**：使用 `models/building.glb`（4.5MB）
 - **多实例支持**：在 3 个不同位置实例化 3 个房屋
-- **HDR 环境反射**：建筑表面反射周围环境光
+- **纹理优化**：`THREE.NearestFilter` + `generateMipmaps` 确保清晰
+- **各向异性过滤**：最大各向异性设置
+- **补光照明**：每个房屋添加聚光灯提高可见度
 
 ### 士兵系统
 - **GLTF 骨骼动画**：使用 `models/soldier.glb`（18MB）
@@ -61,6 +64,7 @@
 - **M1A2 Abrams 主战坦克**：`models/abrams_player.glb`（33MB，315k 三角形）
 - **PBR 材质**：金属度/粗糙度/环境光反射
 - **履带动画**：实时更新履带滚动效果
+- **加载同步**：`Game.start()` 等待模型加载完成再创建坦克
 
 ## 技术改进
 
@@ -69,6 +73,15 @@
 - **GLTF 动画系统**：`AnimationMixer` 播放骨骼动画
 - **环境光反射**：所有 PBR 材质使用 HDR 环境贴图
 - **异步模型加载**：所有 GLTF 模型异步加载，不阻塞游戏启动
+- **纹理质量优化**：
+  - 各向异性过滤（最大可用值）
+  - NearestFilter 强制最清晰纹理
+  - Mipmap 生成和 LinearMipmapLinearFilter
+  - 纹理 needsUpdate 标志正确设置
+- **渲染器优化**：
+  - `powerPreference: 'high-performance'`
+  - 输出编码 sRGB
+  - ACES Filmic 色调映射
 
 ## 操作说明
 

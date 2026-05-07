@@ -206,13 +206,47 @@ python -m http.server 8000
 
 ## 最新修复（2026-05）
 
-1. **测试超时修复**：异步启动游戏循环，避免 `evaluate()` 阻塞
-2. **全局对象暴露**：显式设置 `window.Game` 和 `window.GameScene`
-3. **超时时间增加**：Playwright 超时从 30s 增加到 90s
-4. **测试等待简化**：不等待模型完全加载，只检查对象存在性
-5. **逼真效果实现**：
-   - HDR 天空环境贴图
-   - Three.js Water 着色器海洋
-   - GLTF 地面/建筑/士兵/动物模型
-   - AnimationMixer 骨骼动画
-   - PBR 材质 + HDR 环境反射
+1. **黑屏修复**：
+   - 添加 `try-catch` 处理所有初始化函数
+   - Water shader 和 HDR 加载失败时自动降级
+   - 移除对已删除函数的调用
+
+2. **GLTF 模型优化**：
+   - 建筑模型正确克隆（`clone()`）
+   - 地面/建筑/士兵/动物使用 GLTF 并带降级方案
+   - 动画混合器正确更新
+
+3. **测试覆盖增强**：
+   - 添加控制台错误监听（`console.error`）
+   - `check-3d.js` 等待模型加载完成后再检查
+   - 检查场景子对象数量 > 5 防止黑屏
+   - 过滤非关键错误（favicon、Pointer Lock）
+
+4. **错误修复**：
+   - `requestPointerLock()` 检查存在性后再调用
+   - `createEnvironment()` 每个子函数都有错误处理
+   - 防止单个组件失败导致整个游戏崩溃
+
+5. **坦克模型加载修复**：
+   - `Game.start()` 等待模型加载完成再创建坦克
+   - `Tank.loadGLTFModel()` 正确处理 "正在加载" 状态
+   - 添加 `tankModelReady` 和 `allModelsReady` 标志位
+   - 修复异步时序问题
+
+6. **纹理质量优化**：
+   - **各向异性过滤**：`anisotropy = maxAnisotropy` 最大各向异性
+   - **纹理过滤**：`THREE.NearestFilter` 强制最清晰
+   - **Mipmap 生成**：`generateMipmaps = true` 完整 mipmap
+   - **渲染器优化**：`powerPreference: 'high-performance'` 高性能模式
+   - **建筑补光**：每个房屋添加聚光灯提高可见度
+
+7. **天空和海洋系统**：
+   - HDR 环境贴图加载（`venice_1k.hdr`）
+   - Three.js Water 着色器海洋（动态波浪）
+   - 降级方案：HDR/Water 失败时自动使用程序化实现
+
+8. **自动化测试改进**：
+   - 监听控制台错误（`page.on('console')`）
+   - 过滤非关键错误（favicon、Pointer Lock、Custom UV）
+   - 检查场景子对象数量防止黑屏
+   - 游戏启动后发送 `game-started` 事件
