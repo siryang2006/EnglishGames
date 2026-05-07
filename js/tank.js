@@ -41,35 +41,23 @@ class Tank {
     }
 
     loadGLTFModel(isPlayer) {
-        // 检查模型是否已加载完成
-        const modelReady = typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.playerModel;
-        const modelLoading = typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.loading;
-
-        if (!modelReady) {
-            if (modelLoading) {
+        if (typeof TankGLTFLoader === 'undefined' || !TankGLTFLoader.playerModel) {
+            if (typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.loading) {
                 console.log('Tank: model is loading, waiting...');
                 const checkModel = setInterval(() => {
                     if (TankGLTFLoader.playerModel) {
                         clearInterval(checkModel);
-                        this.loadGLTFModel(isPlayer); // 递归调用，这次应该成功
+                        this.loadGLTFModel(isPlayer);
                     }
                 }, 100);
-                return; // 等待中，先返回
+                return;
             }
             console.log('Tank: using procedural model (GLTF not available)');
             this.buildDetailedModel();
             this.collectProceduralTreads();
             return;
         }
-                }, 100);
-                return; // 等待中，先返回
-            }
-            console.log('Using procedural tank model');
-            this.buildDetailedModel();
-            this.collectProceduralTreads();
-            return;
-        }
-        
+
         const model = TankGLTFLoader.playerModel.clone();
         
         const color = isPlayer ? 0x4a5d3a : 0x8b3a2a;
@@ -80,7 +68,6 @@ class Tank {
                 if (child.material.color) {
                     child.material.color.setHex(color);
                 }
-                // Collect tread meshes by name
                 const name = child.name.toLowerCase();
                 if (name.includes('tread') || name.includes('track') || name.includes('chain')) {
                     this.treadMeshes.push(child);
