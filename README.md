@@ -49,9 +49,10 @@
 - **补光照明**：每个房屋添加聚光灯提高可见度
 
 ### 士兵系统
-- **GLTF 骨骼动画**：使用 `models/soldier.glb`（18MB）
+- **GLTF 骨骼动画**：使用 `models/stylized_soldier_rigged.glb`（4.8MB）
 - **动画混合器**：支持 idle/walk/run 动画切换
 - **动画更新**：`SoldierManager.updateMixers()` 实时更新动画
+- **智能缩放**：自动根据模型尺寸调整到 2.0m 高度
 - **阵营区分**：友军（绿色头盔）和敌军（红色头盔）
 
 ### 动物系统
@@ -59,29 +60,41 @@
 - **多类型支持**：鹿（deer）和野猪（boar）
 - **动画混合器**：支持 walk/run/idle 动画
 - **动画更新**：`AnimalManager.updateMixers()` 实时更新
+- **验证**：需在浏览器中检查动画是否播放（鹿腿/野猪腿是否动）
 
 ### 坦克系统
-- **M1A2 Abrams 主战坦克**：`models/abrams_player.glb`（33MB，315k 三角形）
+- **M1A2 Abrams 主战坦克**：`models/abrams_player.glb`（24MB）
 - **PBR 材质**：金属度/粗糙度/环境光反射
-- **履带动画**：实时更新履带滚动效果
+- **履带动画**：实时更新履带滚动效果（需坦克移动）
 - **加载同步**：`Game.start()` 等待模型加载完成再创建坦克
+- **超时保护**：10秒超时防止无限等待（见 `tank.js:47-56`）
 
-## 技术改进
+## 技术改进与修复
 
+### 模型加载优化
 - **HDR 环境光照**：使用 `RGBELoader` 加载 `.hdr` 贴图
 - **Water 着色器**：逼真海洋波浪和反射效果
 - **GLTF 动画系统**：`AnimationMixer` 播放骨骼动画
 - **环境光反射**：所有 PBR 材质使用 HDR 环境贴图
 - **异步模型加载**：所有 GLTF 模型异步加载，不阻塞游戏启动
-- **纹理质量优化**：
-  - 各向异性过滤（最大可用值）
-  - NearestFilter 强制最清晰纹理
-  - Mipmap 生成和 LinearMipmapLinearFilter
-  - 纹理 needsUpdate 标志正确设置
-- **渲染器优化**：
-  - `powerPreference: 'high-performance'`
-  - 输出编码 sRGB
-  - ACES Filmic 色调映射
+
+### 纹理质量优化
+- **各向异性过滤**：`anisotropy = maxAnisotropy` 最大各向异性
+- **纹理过滤**：`THREE.NearestFilter` 强制最清晰纹理
+- **Mipmap 生成**：`generateMipmaps = true` 完整 mipmap
+- **纹理更新**：`needsUpdate = true` 标志正确设置
+
+### 渲染器优化
+- **高性能模式**：`powerPreference: 'high-performance'`
+- **输出编码**：sRGB
+- **色调映射**：ACES Filmic
+
+### 代码修复（2026-05）
+1. **黑屏修复**：所有 init 函数添加 try-catch
+2. **坦克模型加载**：`setInterval` 添加 10 秒超时（防内存泄漏）
+3. **建筑模型**：移除多余 `clone()` 调用
+4. **士兵模型**：更换为 `stylized_soldier_rigged.glb`（带完整绑定）
+5. **测试覆盖**：添加控制台错误监听和场景子对象检查
 
 ## 操作说明
 

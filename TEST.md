@@ -85,10 +85,12 @@ npm run test:report
 - 验证：Console 看到 "Soldier: using GLTF model"
 
 ### 动物系统
-- ✅ GLTF 模型 (`models/animals_real.glb`)
+- ✅ GLTF 模型 (`models/animals_real.glb` (72MB))
 - ✅ 支持鹿(deer)和野猪(boar)
 - ✅ AnimationMixer 播放 walk/run 动画
 - ✅ `AnimalManager.updateMixers()` 更新动画
+- ⚠️ 需要在浏览器中验证：鹿腿/野猪腿是否随动画动起来
+- 验证方法：F12 控制台输入 `AnimalManager.animals.forEach((a,i) => console.log(\`动物\${i}: mixer=\${!!a.mixer}\`))`
 
 ## 方法二：浏览器控制台检查
 
@@ -230,7 +232,7 @@ python -m http.server 8000
 5. **坦克模型加载修复**：
    - `Game.start()` 等待模型加载完成再创建坦克
    - `Tank.loadGLTFModel()` 正确处理 "正在加载" 状态
-   - 添加 `tankModelReady` 和 `allModelsReady` 标志位
+   - `setInterval` 添加 10 秒超时防内存泄漏（`tank.js:47-56`）
    - 修复异步时序问题
 
 6. **纹理质量优化**：
@@ -250,3 +252,14 @@ python -m http.server 8000
    - 过滤非关键错误（favicon、Pointer Lock、Custom UV）
    - 检查场景子对象数量防止黑屏
    - 游戏启动后发送 `game-started` 事件
+
+9. **模型文件更换**：
+   - 士兵模型：`soldier.glb` (18MB) → `stylized_soldier_rigged.glb` (4.8MB)
+   - 坦克模型：`abrams_player.glb` 实际大小 24MB（非 33MB）
+   - 建筑模型：`createBeachHuts()` 移除多余 `clone()` 调用
+
+10. **代码 Review 验证**：
+    - ✅ 坦克履带动画逻辑正确（需移动才动）
+    - ✅ 动物/士兵 AnimationMixer 更新逻辑正确
+    - ⚠️ 模型是否真实动起来需在浏览器中验证
+    - 验证方法：F12 控制台检查 `mixer._actions` 长度
