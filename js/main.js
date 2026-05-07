@@ -96,15 +96,22 @@ const Game = {
         SpellTracker.init(this.player);
 
         UI.reset();
-        const canvas = document.getElementById('gameCanvas');
-        // Pointer lock 需要在用户手势中调用，用 try-catch 包裹
-        try {
-            if (canvas.requestPointerLock) {
-                canvas.requestPointerLock();
+
+        // 发送游戏开始事件（供 check-3d.js 等使用）
+        window.dispatchEvent(new Event('game-started'));
+
+        // Pointer lock 需要在用户手势中调用，使用 setTimeout 延迟
+        setTimeout(() => {
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas && canvas.requestPointerLock) {
+                try {
+                    canvas.requestPointerLock();
+                } catch(e) {
+                    console.warn('Pointer lock failed:', e.message);
+                }
             }
-        } catch(e) {
-            console.warn('Pointer lock failed:', e.message);
-        }
+        }, 100);
+
         this.loop();
     },
 

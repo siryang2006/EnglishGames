@@ -164,10 +164,16 @@
     // 暴露到全局
     window.check3DDisplay = check3DDisplay;
 
-    // 如果页面已加载，自动运行
-    if (document.readyState === 'complete') {
-        setTimeout(check3DDisplay, 1000);
-    } else {
-        window.addEventListener('load', () => setTimeout(check3DDisplay, 1000));
+    // 不再自动运行，等待游戏开始后再调用
+    // 手动调用：在控制台输入 check3DDisplay()
+    // 或由游戏启动后调用
+    window.addEventListener('game-started', () => {
+        // 等待2秒让场景完全初始化
+        setTimeout(check3DDisplay, 2000);
+    });
+
+    // 如果游戏已经开始（页面刷新后），手动调用
+    if (window.Game && window.Game.player) {
+        console.log('游戏已在进行中，可手动调用 check3DDisplay()');
     }
 })();
