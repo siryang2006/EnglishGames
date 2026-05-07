@@ -22,22 +22,30 @@ const Game = {
     maxGameTime: 600,
     aimPitch: 0,
 
-init() {
+    init() {
         GameScene.init();
         InputManager.init();
-        
+
         if (typeof TankGLTFLoader !== 'undefined') {
-            TankGLTFLoader.load(GameScene.scene, (model) => {
-                console.log('Real Abrams tank model ready, size:', model ? model.scale.x : 'default');
-            }, (err) => {
-                console.warn('Model load failed, using default:', err);
-            });
+            try {
+                TankGLTFLoader.load(GameScene.scene, (model) => {
+                    console.log('Real Abrams tank model ready, size:', model ? model.scale.x : 'default');
+                }, (err) => {
+                    console.warn('Tank model load failed, using default:', err.message || err);
+                });
+            } catch(e) {
+                console.warn('TankGLTFLoader exception:', e.message);
+            }
         }
-        
+
         if (typeof ModelLoader !== 'undefined') {
-            ModelLoader.load(GameScene.scene, () => {
-                console.log('All models loaded!');
-            });
+            try {
+                ModelLoader.load(GameScene.scene, () => {
+                    console.log('All models loaded!');
+                });
+            } catch(e) {
+                console.warn('ModelLoader exception:', e.message);
+            }
         }
     },
 

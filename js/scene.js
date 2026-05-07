@@ -66,23 +66,35 @@ init() {
 
     loadHDRI() {
         // 使用 HDR 贴图创建逼真天空和环境光
+        if (typeof THREE.RGBELoader === 'undefined') {
+            console.warn('RGBELoader not available, using procedural sky');
+            this.createDefaultSky();
+            return;
+        }
+
         const hdrLoader = new THREE.RGBELoader();
         const hdrPath = 'textures/venice_1k.hdr';
 
-        hdrLoader.load(hdrLoader, (texture) => {
-            texture.mapping = THREE.EquirectangularReflectionMapping;
-            this.scene.background = texture;
-            this.scene.environment = texture;
+        try {
+            hdrLoader.load(hdrPath, (texture) => {
+                texture.mapping = THREE.EquirectangularReflectionMapping;
+                this.scene.background = texture;
+                this.scene.environment = texture;
+                this.envMap = texture;
 
-            // 更新灯光使用 HDR 环境光
-            if (this.sunLight) {
-                this.scene.environmentIntensity = 1.0;
-            }
-            console.log('HDRI loaded:', hdrPath);
-        }, undefined, (err) => {
-            console.warn('HDRI load failed, using procedural sky:', err);
+                // 更新灯光使用 HDR 环境光
+                if (this.sunLight) {
+                    this.scene.environmentIntensity = 1.0;
+                }
+                console.log('HDRI loaded:', hdrPath);
+            }, undefined, (err) => {
+                console.warn('HDRI load failed, using procedural sky:', err.message || err);
+                this.createDefaultSky();
+            });
+        } catch(e) {
+            console.warn('HDRI exception, using procedural sky:', e.message);
             this.createDefaultSky();
-        });
+        }
     },
 
     createDefaultSky() {
@@ -274,31 +286,73 @@ init() {
     },
 
     createOcean() {
-        // 使用 Three.js Water shader 创建逼真海洋
-        const waterNormals = new THREE.TextureLoader().load('textures/waternormals.jpg', (texture) => {
-            texture.wrapS = THREE.RepeatWrapping;
-            texture.wrapT = THREE.RepeatWrapping;
-        });
+        // 检查 Three.js Water shader 是否可用
+        if (typeof THREE.Water === 'undefined') {
+            console.warn('THREE.Water not available, using procedural ocean');
+            this.createProceduralOcean();
+            return;
+        }
 
-        const waterGeo = new THREE.PlaneGeometry(400, 200, 128, 128);
-        const water = new THREE.Water(waterGeo, {
-            textureWidth: 1024,
-            textureHeight: 1024,
-            waterNormals: waterNormals,
-            sunDirection: new THREE.Vector3(0.5, 0.5, -0.5).normalize(),
-            sunColor: 0xffffff,
-            waterColor: 0x0077be,
-            distortionScale: 3.0,
-            fog: false,
-            alpha: 0.95
-        });
-        water.rotation.x = -Math.PI / 2;
-        water.position.set(0, -0.3, -160);
-        water.material.uniforms['size'].value = 8.0; // 波浪大小
-        this.scene.add(water);
-        this.ocean = water;
+        try {
+            const waterNormals = new THREE.TextureLoader().load('textures/waternormals.jpg', (texture) => {
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+            });
 
-        // 海岸泡沫效果
+            const waterGeo = new THREE.PlaneGeometry(400, 200, 128, 128);
+            const water = new THREE.Water(waterGeo, {
+                textureWidth: 1024,
+                textureHeight: 1024,
+                waterNormals: waterNormals,
+                sunDirection: new THREE.Vector3(0.5, 0.5, -0.5).normalize(),
+                sunColor: 0xffffff,
+                waterColor: 0x0077be,
+                distortionScale: 3.0,
+                fog: false,
+                alpha: 0.95
+            });
+            water.rotation.x = -Math.PI / 2;
+            water.position.set(0, -0.3, -160);
+            water.material.uniforms['size'].value = 8.0;
+            this.scene.add(water);
+            this.ocean = water;
+
+            // 海岸泡沫效果
+            const foamGeo = new THREE.PlaneGeometry(300, 12);
+            const foamMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.35,
+                side: THREE.DoubleSide
+            });
+            const foam = new THREE.Mesh(foamGeo, foamMat);
+            foam.rotation.x = -Math.PI / 2;
+            foam.position.set(0, 0.05, -60);
+            this.scene.add(foam);
+            this.foam = foam;
+
+            console.log('Realistic ocean created with Water shader');
+        } catch(e) {
+            console.warn('Water shader failed, falling back to procedural:', e.message);
+            this.createProceduralOcean();
+        }
+    },
+
+    createProceduralOcean() {
+        const oceanGeo = new THREE.PlaneGeometry(400, 200, 32, 32);
+        const oceanMat = new THREE.MeshStandardMaterial({
+            color: 0x1a6090,
+            roughness: 0.15,
+            metalness: 0.3,
+            transparent: true,
+            opacity: 0.9,
+            envMapIntensity: 1.0
+        });
+        this.ocean = new THREE.Mesh(oceanGeo, oceanMat);
+        this.ocean.rotation.x = -Math.PI / 2;
+        this.ocean.position.set(0, -0.3, -160);
+        this.scene.add(this.ocean);
+
         const foamGeo = new THREE.PlaneGeometry(300, 12);
         const foamMat = new THREE.MeshBasicMaterial({
             color: 0xffffff,
@@ -311,8 +365,7 @@ init() {
         foam.position.set(0, 0.05, -60);
         this.scene.add(foam);
         this.foam = foam;
-
-        console.log('Realistic ocean created with Water shader');
+        console.log('Procedural ocean created (fallback)');
     },
 
     createSkyDome() {
