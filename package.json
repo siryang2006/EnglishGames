@@ -1,0 +1,17 @@
+{
+  "name": "english-tank-battle",
+  "version": "1.0.0",
+  "description": "英语坦克大战 - 3D Tank Game with English Vocabulary",
+  "main": "index.html",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui",
+    "test:report": "npx playwright show-report",
+    "start": "python -m http.server 8000"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  },
+  "keywords": ["three.js", "game", "english", "tank", "education"],
+  "license": "MIT"
+}

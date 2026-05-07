@@ -19,6 +19,10 @@ class Tank {
         this.wordSprite = null;
         this.healthBar = null;
         this.gltfModel = null;
+        this.treadMeshes = [];
+        this.wheelMeshes = [];
+        this.treadOffset = 0;
+        this.lastPosition = new THREE.Vector3();
 
         this.loadGLTFModel(isPlayer);
         
@@ -40,6 +44,7 @@ class Tank {
         if (typeof TankGLTFLoader === 'undefined' || !TankGLTFLoader.playerModel) {
             console.log('Using procedural tank model');
             this.buildDetailedModel();
+            this.collectProceduralTreads();
             return;
         }
         
@@ -52,6 +57,14 @@ class Tank {
                 child.material = child.material.clone();
                 if (child.material.color) {
                     child.material.color.setHex(color);
+                }
+                // Collect tread meshes by name
+                const name = child.name.toLowerCase();
+                if (name.includes('tread') || name.includes('track') || name.includes('chain')) {
+                    this.treadMeshes.push(child);
+                }
+                if (name.includes('wheel') || name.includes('road') || name.includes('sprocket') || name.includes('idler')) {
+                    this.wheelMeshes.push(child);
                 }
             }
         });
@@ -67,6 +80,57 @@ class Tank {
         
         if (isPlayer) {
             console.log('Tank oriented correctly! Using group for turret');
+        }
+    }
+
+    collectProceduralTreads() {
+        this.treadMeshes = [];
+        this.wheelMeshes = [];
+        this.group.traverse((child) => {
+            if (!child.isMesh) return;
+            const name = child.name.toLowerCase();
+            // Identify track/tread by material color or size
+            if (child.material && child.material.color) {
+                const c = child.material.color;
+                if (c.r < 0.15 && c.g < 0.15 && c.b < 0.15) { // dark/black = track
+                    this.treadMeshes.push(child);
+                }
+                if (child.geometry && child.geometry.parameters) {
+                    const p = child.geometry.parameters;
+                    if (p.radius && p.radius > 0.2 && p.radius < 0.4) {
+                        this.wheelMeshes.push(child);
+                    }
+                }
+            }
+        });
+        console.log('Tread meshes:', this.treadMeshes.length, 'Wheel meshes:', this.wheelMeshes.length);
+    }
+
+    updateTreadAnimation(dt) {
+        if (!this.alive) return;
+        // Calculate movement distance
+        const currentPos = this.group.position.clone();
+        const distance = currentPos.distanceTo(this.lastPosition);
+        this.lastPosition.copy(currentPos);
+
+        if (distance > 0.001) {
+            this.treadOffset += distance * 0.3;
+            const speed = this.isPlayer ? 12 : 4;
+            const factor = distance > 0 ? (distance / (speed * dt)) : 0;
+            if (this.treadOffset > 1) this.treadOffset -= 1;
+
+            // Animate tread textures
+            this.treadMeshes.forEach(mesh => {
+                if (mesh.material && mesh.material.map) {
+                    mesh.material.map.wrapS = THREE.RepeatWrapping;
+                    mesh.material.map.offset.x = this.treadOffset;
+                }
+            });
+
+            // Rotate wheels
+            this.wheelMeshes.forEach(wheel => {
+                wheel.rotation.x += distance * 2;
+            });
         }
     }
 
@@ -566,6 +630,8 @@ class Tank {
         const bound = 85;
         myPos.x = Math.max(-bound, Math.min(bound, myPos.x));
         myPos.z = Math.max(-bound, Math.min(bound, myPos.z));
+
+        this.updateTreadAnimation(dt);
     }
 
     canFire() { return this.fireTimer <= 0; }

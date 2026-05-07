@@ -3,6 +3,8 @@ const ModelLoader = {
     building: null,
     animals: null,
     soldier: null,
+    soldierAnimations: [],
+    animalsAnimations: [],
     loaded: false,
     loadCount: 0,
     totalModels: 4,
@@ -22,9 +24,14 @@ const ModelLoader = {
 
         const loader = new THREE.GLTFLoader();
         const self = this;
-        const loadModel = (path, target, name) => {
+        const loadModel = (path, target, name, animTarget) => {
             loader.load(path, (gltf) => {
                 self[target] = gltf.scene;
+                // Store animations if available
+                if (animTarget && gltf.animations && gltf.animations.length > 0) {
+                    self[animTarget] = gltf.animations;
+                    console.log(name + ' animations loaded:', gltf.animations.length);
+                }
                 self.loadCount++;
                 console.log(name + ' loaded (' + self.loadCount + '/' + self.totalModels + ')');
                 if (self.loadCount >= self.totalModels) {
@@ -42,10 +49,10 @@ const ModelLoader = {
             });
         };
 
-        loadModel('models/ground.glb', 'ground', 'Ground');
-        loadModel('models/building.glb', 'building', 'Building');
-        loadModel('models/animals_real.glb', 'animals', 'Animals');
-        loadModel('models/soldier.glb', 'soldier', 'Soldier');
+        loadModel('models/ground.glb', 'ground', 'Ground', null);
+        loadModel('models/building.glb', 'building', 'Building', null);
+        loadModel('models/animals_real.glb', 'animals', 'Animals', 'animalsAnimations');
+        loadModel('models/soldier.glb', 'soldier', 'Soldier', 'soldierAnimations');
     },
 
     getGround() {
@@ -67,13 +74,16 @@ const ModelLoader = {
     },
     getSoldier() {
         if (!this.soldier) {
-            console.log('getSoldier: this.soldier is null');
             return null;
         }
-        let meshCount = 0;
-        this.soldier.traverse(c => { if (c.isMesh) meshCount++; });
-        console.log('getSoldier: found', meshCount, 'meshes');
-        return this.soldier.clone();
+        const clone = this.soldier.clone();
+        clone.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        return clone;
     }
 };
 

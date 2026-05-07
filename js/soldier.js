@@ -12,7 +12,11 @@ class Soldier {
         this.patrolTimer = 0;
         this.word = null;
         this.letter = '';
+        this.usingGltf = false;
+        this.mixer = null;
+        this.currentAction = null;
 
+        this.usingGltf = false;
         this.buildModel();
         this.createHealthBar();
         if (!isPlayerTeam) {
@@ -24,7 +28,36 @@ class Soldier {
     }
 
     buildModel() {
-        this.buildPrimitiveModel();
+        if (typeof ModelLoader !== 'undefined' && ModelLoader.soldier) {
+            this.loadGLTFModel();
+        } else {
+            this.buildPrimitiveModel();
+        }
+    }
+
+    loadGLTFModel() {
+        const model = ModelLoader.getSoldier();
+        if (model) {
+            // Setup animation mixer
+            if (ModelLoader.soldierAnimations && ModelLoader.soldierAnimations.length > 0) {
+                this.mixer = new THREE.AnimationMixer(model);
+                // Play idle animation by default
+                const idleClip = ModelLoader.soldierAnimations.find(a =>
+                    a.name.toLowerCase().includes('idle') || a.name.toLowerCase().includes('stand')
+                ) || ModelLoader.soldierAnimations[0];
+                if (idleClip) {
+                    this.currentAction = this.mixer.clipAction(idleClip);
+                    this.currentAction.play();
+                }
+            }
+            model.scale.setScalar(0.15);
+            model.rotation.y = Math.PI;
+            this.group.add(model);
+            this.usingGltf = true;
+            console.log('Soldier: using GLTF model');
+        } else {
+            this.buildPrimitiveModel();
+        }
     }
 
     buildPrimitiveModel() {
@@ -126,6 +159,11 @@ class Soldier {
 
     updateAI(dt) {
         if (!this.alive) return;
+
+        // Update animation mixer
+        if (this.mixer) {
+            this.mixer.update(dt);
+        }
 
         // No GLTF upgrade
 

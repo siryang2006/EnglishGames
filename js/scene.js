@@ -684,3 +684,6 @@ init() {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 };
+
+// 暴露到全局供测试使用
+window.GameScene = GameScene;

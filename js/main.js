@@ -60,53 +60,41 @@ init() {
         BulletManager.clear();
         ExplosionManager.clear();
 
-        const checkAndStart = () => {
-            this.player = new Tank(GameScene.scene, true);
-            this.player.group.position.set(0, 0, 0);
-            console.log('Player tank created with GLTF:', typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.playerModel ? 'YES' : 'NO');
+        // 立即启动游戏，不等待模型加载
+        this.player = new Tank(GameScene.scene, true);
+        this.player.group.position.set(0, 0, 0);
+        console.log('Player tank created with GLTF:', typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.playerModel ? 'YES' : 'NO');
 
-            this.enemies = [];
-            for (let i = 0; i < this.maxEnemies; i++) this.spawnEnemy();
+        // 设置就绪标志供测试使用
+        window.gamePlayerCreated = true;
 
-            SoldierManager.init(GameScene.scene);
-            SoldierManager.spawnFriendly(2);
-            SoldierManager.spawnEnemy(2);
+        this.enemies = [];
+        for (let i = 0; i < this.maxEnemies; i++) this.spawnEnemy();
 
-            PickupManager.init(GameScene.scene);
-            AnimalManager.init(GameScene.scene);
-            AnimalManager.spawn(8);
-            if (typeof AircraftGLTFLoader !== 'undefined') {
-                AircraftGLTFLoader.load(() => {
-                    AircraftManager.init(GameScene.scene);
-                });
-            } else {
+        SoldierManager.init(GameScene.scene);
+        SoldierManager.spawnFriendly(2);
+        SoldierManager.spawnEnemy(2);
+
+        PickupManager.init(GameScene.scene);
+        AnimalManager.init(GameScene.scene);
+        AnimalManager.spawn(8);
+        if (typeof AircraftGLTFLoader !== 'undefined') {
+            AircraftGLTFLoader.load(() => {
                 AircraftManager.init(GameScene.scene);
-            }
-            SpellTracker.init(this.player);
-
-            UI.reset();
-            const canvas = document.getElementById('gameCanvas');
-            canvas.requestPointerLock();
-            this.loop();
-        };
-
-        const modelsReady = () => {
-            const tankReady = typeof TankGLTFLoader === 'undefined' || TankGLTFLoader.modelReady;
-            const modelsLoaded = typeof ModelLoader === 'undefined' || ModelLoader.loaded;
-            return tankReady && modelsLoaded;
-        };
-
-        if (modelsReady()) {
-            checkAndStart();
+            });
         } else {
-            const waitForModels = setInterval(() => {
-                console.log('Waiting for models... tank:', typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.modelReady, 'models:', typeof ModelLoader !== 'undefined' && ModelLoader.loaded);
-                if (modelsReady()) {
-                    clearInterval(waitForModels);
-                    checkAndStart();
-                }
-            }, 500);
+            AircraftManager.init(GameScene.scene);
         }
+        SpellTracker.init(this.player);
+
+        UI.reset();
+        const canvas = document.getElementById('gameCanvas');
+        try {
+            canvas.requestPointerLock();
+        } catch(e) {
+            console.warn('Pointer lock failed:', e);
+        }
+        this.loop();
     },
 
     spawnEnemy() {
@@ -132,6 +120,10 @@ init() {
         this.updateInvulnerability(dt);
         this.updateTimer(dt);
         SoldierManager.update(dt);
+
+        // Update tank tread animations
+        if (this.player) this.player.updateTreadAnimation(dt);
+        this.enemies.forEach(e => { if (e.alive) e.updateTreadAnimation(dt); });
 
         const tankPositions = [this.player.group.position];
         this.enemies.forEach(e => { if (e.alive) tankPositions.push(e.group.position); });
@@ -642,11 +634,16 @@ init() {
 function startGame() {
     document.getElementById('start-screen').style.display = 'none';
     try {
+        console.log('startGame() called');
         Game.init();
-        Game.start();
+        console.log('Game.init() completed');
+        // 使用 setTimeout 异步启动，避免阻塞调用者
+        setTimeout(() => {
+            Game.start();
+            console.log('Game.start() completed');
+        }, 0);
     } catch(e) {
-        alert('Error: ' + e.message);
-        console.error(e);
+        console.error('Error starting game:', e);
     }
 }
 
@@ -663,3 +660,6 @@ function restartGame() {
     GameScene.createDustParticles();
     Game.start();
 }
+
+// 暴露到全局供测试使用
+window.Game = Game;
