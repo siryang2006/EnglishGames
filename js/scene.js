@@ -31,7 +31,8 @@ init() {
 
         this.renderer = new THREE.WebGLRenderer({
             canvas: canvas,
-            antialias: true
+            antialias: true,
+            powerPreference: 'high-performance'
         });
         console.log('Renderer created');
         this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -41,6 +42,10 @@ init() {
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.3;
         this.renderer.outputEncoding = THREE.sRGBEncoding;
+
+        // 强制提高纹理质量
+        this.renderer.capabilities.isWebGL2 = true; // 尝试启用 WebGL2 特性
+        this.renderer.context.getParameter(this.renderer.context.MAX_TEXTURE_ANISOTROPY_EXT);
 
         this.initPostProcessing();
         this.loadHDRI();
