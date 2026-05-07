@@ -535,16 +535,45 @@ init() {
                 if (model) {
                     // 克隆模型避免修改原始模型
                     const modelClone = model.clone();
+                    const maxAnisotropy = this.renderer ? this.renderer.capabilities.getMaxAnisotropy() : 1;
+
                     modelClone.traverse((child) => {
                         if (child.isMesh && child.material) {
                             child.material = child.material.clone();
                             child.material.envMapIntensity = 1.0;
                             child.castShadow = true;
                             child.receiveShadow = true;
+
+                            // 优化纹理过滤，提高清晰度
+                            if (child.material.map) {
+                                child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
+                                child.material.map.magFilter = THREE.LinearFilter;
+                                child.material.map.anisotropy = maxAnisotropy; // 使用最大各向异性
+                                child.material.map.needsUpdate = true;
+                            }
+                            if (child.material.normalMap) {
+                                child.material.normalMap.anisotropy = maxAnisotropy;
+                            }
+                            if (child.material.roughnessMap) {
+                                child.material.roughnessMap.anisotropy = maxAnisotropy;
+                            }
+                            if (child.material.metalnessMap) {
+                                child.material.metalnessMap.anisotropy = maxAnisotropy;
+                            }
                         }
                     });
-                    modelClone.scale.setScalar(0.8);
+
+                    // 调整缩放比例，避免过大或过小
+                    modelClone.scale.setScalar(1.0);
                     modelClone.position.set(p.x, 0, p.z);
+
+                    // 添加额外光照改善显示
+                    const spotLight = new THREE.SpotLight(0xffffff, 0.5);
+                    spotLight.position.set(p.x, 10, p.z);
+                    spotLight.target = modelClone;
+                    spotLight.castShadow = false;
+                    this.scene.add(spotLight);
+
                     this.scene.add(modelClone);
                     const bData = {
                         group: modelClone,

@@ -59,7 +59,36 @@ const ModelLoader = {
         return this.ground ? this.ground.clone() : null;
     },
     getBuilding() {
-        return this.building ? this.building.clone() : null;
+        if (!this.building) return null;
+        const clone = this.building.clone();
+        const maxAnisotropy = (typeof GameScene !== 'undefined' && GameScene.renderer) ?
+            GameScene.renderer.capabilities.getMaxAnisotropy() : 1;
+        clone.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                if (child.material) {
+                    child.material = child.material.clone();
+                    // 提高纹理清晰度
+                    if (child.material.map) {
+                        child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
+                        child.material.map.magFilter = THREE.LinearFilter;
+                        child.material.map.anisotropy = maxAnisotropy;
+                        child.material.map.needsUpdate = true;
+                    }
+                    if (child.material.normalMap) {
+                        child.material.normalMap.anisotropy = maxAnisotropy;
+                    }
+                    if (child.material.roughnessMap) {
+                        child.material.roughnessMap.anisotropy = maxAnisotropy;
+                    }
+                    if (child.material.metalnessMap) {
+                        child.material.metalnessMap.anisotropy = maxAnisotropy;
+                    }
+                }
+            }
+        });
+        return clone;
     },
     getAnimals() {
         if (!this.animals) return null;
