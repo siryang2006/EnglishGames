@@ -38,6 +38,13 @@ class Soldier {
     loadGLTFModel() {
         const model = ModelLoader.getSoldier();
         if (model) {
+            // 计算模型实际大小，自动调整缩放
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const targetSize = 2.0; // 目标高度约 2 米
+            const scale = targetSize / maxDim;
+
             // Setup animation mixer
             if (ModelLoader.soldierAnimations && ModelLoader.soldierAnimations.length > 0) {
                 this.mixer = new THREE.AnimationMixer(model);
@@ -50,11 +57,11 @@ class Soldier {
                     this.currentAction.play();
                 }
             }
-            model.scale.setScalar(0.15);
+            model.scale.setScalar(scale);
             model.rotation.y = Math.PI;
             this.group.add(model);
             this.usingGltf = true;
-            console.log('Soldier: using GLTF model');
+            console.log('Soldier: using GLTF model, scale:', scale.toFixed(3), 'size:', maxDim.toFixed(2));
         } else {
             this.buildPrimitiveModel();
         }
