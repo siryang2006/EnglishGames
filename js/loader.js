@@ -53,7 +53,6 @@ const ModelLoader = {
         loadModel('models/building.glb', 'building', 'Building', null);
         loadModel('models/stylized_soldier_rigged.glb', 'soldier', 'Soldier', 'soldierAnimations');
         loadModel('models/animals_real.glb', 'animals', 'Animals', 'animalsAnimations');
-        loadModel('models/soldier.glb', 'soldier', 'Soldier', 'soldierAnimations');
     },
 
     getGround() {
