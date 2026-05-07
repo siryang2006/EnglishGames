@@ -44,10 +44,17 @@ class Tank {
         if (typeof TankGLTFLoader === 'undefined' || !TankGLTFLoader.playerModel) {
             if (typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.loading) {
                 console.log('Tank: model is loading, waiting...');
+                const startTime = Date.now();
                 const checkModel = setInterval(() => {
-                    if (TankGLTFLoader.playerModel) {
+                    if (TankGLTFLoader.playerModel || Date.now() - startTime > 10000) {
                         clearInterval(checkModel);
-                        this.loadGLTFModel(isPlayer);
+                        if (TankGLTFLoader.playerModel) {
+                            this.loadGLTFModel(isPlayer);
+                        } else {
+                            console.log('Tank: model load timeout, using procedural');
+                            this.buildDetailedModel();
+                            this.collectProceduralTreads();
+                        }
                     }
                 }, 100);
                 return;

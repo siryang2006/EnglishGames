@@ -536,10 +536,8 @@ init() {
 
         if (typeof ModelLoader !== 'undefined' && ModelLoader.building) {
             positions.forEach(p => {
-                const model = ModelLoader.getBuilding();
-                if (model) {
-                    // 克隆模型避免修改原始模型
-                    const modelClone = model.clone();
+                const modelClone = ModelLoader.getBuilding();
+                if (modelClone) {
                     const maxAnisotropy = this.renderer ? this.renderer.capabilities.getMaxAnisotropy() : 1;
 
                     modelClone.traverse((child) => {
