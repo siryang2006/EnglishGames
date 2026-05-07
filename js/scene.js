@@ -541,15 +541,14 @@ init() {
                         if (child.isMesh && child.material) {
                             child.material = child.material.clone();
                             child.material.envMapIntensity = 1.0;
-                            child.castShadow = true;
-                            child.receiveShadow = true;
 
-                            // 优化纹理过滤，提高清晰度
+                            // 强制提高纹理质量
                             if (child.material.map) {
                                 child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
-                                child.material.map.magFilter = THREE.LinearFilter;
-                                child.material.map.anisotropy = maxAnisotropy; // 使用最大各向异性
+                                child.material.map.magFilter = THREE.NearestFilter; // 强制最清晰
+                                child.material.map.anisotropy = maxAnisotropy; // 最大各向异性
                                 child.material.map.needsUpdate = true;
+                                child.material.map.generateMipmaps = true;
                             }
                             if (child.material.normalMap) {
                                 child.material.normalMap.anisotropy = maxAnisotropy;
@@ -560,6 +559,9 @@ init() {
                             if (child.material.metalnessMap) {
                                 child.material.metalnessMap.anisotropy = maxAnisotropy;
                             }
+
+                            child.castShadow = true;
+                            child.receiveShadow = true;
                         }
                     });
 
