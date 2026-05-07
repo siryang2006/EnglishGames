@@ -43,9 +43,7 @@ init() {
         this.renderer.toneMappingExposure = 1.3;
         this.renderer.outputEncoding = THREE.sRGBEncoding;
 
-        // 强制提高纹理质量
-        this.renderer.capabilities.isWebGL2 = true; // 尝试启用 WebGL2 特性
-        this.renderer.context.getParameter(this.renderer.context.MAX_TEXTURE_ANISOTROPY_EXT);
+        // 纹理质量在各向异性设置中处理
 
         this.initPostProcessing();
         this.loadHDRI();
@@ -203,7 +201,6 @@ init() {
         if (typeof ModelLoader !== 'undefined' && ModelLoader.ground) {
             const gModel = ModelLoader.getGround();
             if (gModel) {
-                let meshCount = 0;
                 const maxAnisotropy = this.renderer ? this.renderer.capabilities.getMaxAnisotropy() : 1;
 
                 gModel.traverse((child) => {
