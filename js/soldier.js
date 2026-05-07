@@ -289,6 +289,14 @@ const SoldierManager = {
         });
     },
 
+    updateMixers(dt) {
+        this.soldiers.forEach(s => {
+            if (s.alive && s.mixer) {
+                s.mixer.update(dt);
+            }
+        });
+    },
+
     clear() {
         this.soldiers.forEach(s => s.dispose());
         this.soldiers = [];

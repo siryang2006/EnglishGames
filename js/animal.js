@@ -285,6 +285,14 @@ const AnimalManager = {
         this.animals.forEach(a => a.update(dt, playerPos));
     },
 
+    updateMixers(dt) {
+        this.animals.forEach(a => {
+            if (a.alive && a.mixer) {
+                a.mixer.update(dt);
+            }
+        });
+    },
+
     checkCollisions(tankPos) {
         for (const a of this.animals) {
             if (a.checkTankCollision(tankPos)) {

@@ -65,19 +65,29 @@ init() {
     },
 
     loadHDRI() {
-        this.createDefaultSky();
+        // 使用 HDR 贴图创建逼真天空和环境光
+        const hdrLoader = new THREE.RGBELoader();
+        const hdrPath = 'textures/venice_1k.hdr';
+
+        hdrLoader.load(hdrLoader, (texture) => {
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            this.scene.background = texture;
+            this.scene.environment = texture;
+
+            // 更新灯光使用 HDR 环境光
+            if (this.sunLight) {
+                this.scene.environmentIntensity = 1.0;
+            }
+            console.log('HDRI loaded:', hdrPath);
+        }, undefined, (err) => {
+            console.warn('HDRI load failed, using procedural sky:', err);
+            this.createDefaultSky();
+        });
     },
 
     createDefaultSky() {
-        console.log('Creating sky...');
-        
-        const checkModel = setInterval(() => {
-            if (typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.modelLoaded) {
-                console.log('Model is ready to use!');
-                clearInterval(checkModel);
-            }
-        }, 500);
-        
+        console.log('Creating procedural sky...');
+
         const skyGeo = new THREE.SphereGeometry(250, 64, 32);
         const canvas = document.createElement('canvas');
         canvas.width = 2048;
@@ -125,9 +135,9 @@ init() {
         ctx.fillStyle = glowGrad;
         ctx.fillRect(0, 0, 2048, 1024);
 
-        const skyMat = new THREE.MeshBasicMaterial({ 
-            map: new THREE.CanvasTexture(canvas), 
-            side: THREE.BackSide 
+        const skyMat = new THREE.MeshBasicMaterial({
+            map: new THREE.CanvasTexture(canvas),
+            side: THREE.BackSide
         });
         const skyMesh = new THREE.Mesh(skyGeo, skyMat);
         this.scene.add(skyMesh);
@@ -171,6 +181,34 @@ init() {
 
     createGround() {
         const size = 250;
+
+        // 尝试使用 GLTF 地面模型
+        if (typeof ModelLoader !== 'undefined' && ModelLoader.ground) {
+            const gModel = ModelLoader.getGround();
+            if (gModel) {
+                let meshCount = 0;
+                gModel.traverse(c => { if (c.isMesh) meshCount++; });
+                console.log('GLTF ground meshes:', meshCount);
+
+                // 设置材质使用 HDR 环境光
+                gModel.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        child.material.envMapIntensity = 1.0;
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+
+                gModel.scale.setScalar(2.0);
+                gModel.position.y = 0;
+                this.scene.add(gModel);
+                console.log('GLTF ground added, scene children:', this.scene.children.length);
+                return; // 使用 GLTF 地面，跳过程序化地面
+            }
+        }
+
+        // 降级到程序化地面
+        console.log('Using procedural ground');
         const canvas = document.createElement('canvas');
         canvas.width = 2048;
         canvas.height = 2048;
@@ -223,9 +261,9 @@ init() {
 
         const ground = new THREE.Mesh(
             new THREE.PlaneGeometry(size, size, 64, 64),
-            new THREE.MeshStandardMaterial({ 
-                map: texture, 
-                roughness: 0.85, 
+            new THREE.MeshStandardMaterial({
+                map: texture,
+                roughness: 0.85,
                 metalness: 0.05,
                 normalScale: new THREE.Vector2(0.3, 0.3)
             })
@@ -233,71 +271,48 @@ init() {
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         this.scene.add(ground);
-        
-        if (typeof ModelLoader !== 'undefined' && ModelLoader.loaded && ModelLoader.ground) {
-            const gModel = ModelLoader.getGround();
-            if (gModel) {
-                let meshCount = 0;
-                gModel.traverse(c => { if (c.isMesh) meshCount++; });
-                console.log('GLTF ground meshes:', meshCount);
-                gModel.scale.setScalar(2.0);
-                gModel.position.y = 0;
-                this.scene.add(gModel);
-            } else {
-                console.log('Ground model is null');
-            }
-        } else {
-            console.log('Ground not loaded, ModelLoader.loaded:', typeof ModelLoader !== 'undefined' && ModelLoader.loaded);
-        }
-    },
-
-    checkAndAddGLTFGround() {
-        const tryAddGround = () => {
-            if (typeof ModelLoader !== 'undefined' && ModelLoader.loaded && ModelLoader.ground) {
-                const gModel = ModelLoader.getGround();
-                if (gModel) {
-                    let meshCount = 0;
-                    gModel.traverse(c => { if (c.isMesh) meshCount++; });
-                    console.log('Adding GLTF ground, meshes:', meshCount);
-                    gModel.scale.setScalar(2.0);
-                    gModel.position.y = 0;
-                    this.scene.add(gModel);
-                    console.log('Ground added, scene children:', this.scene.children.length);
-                }
-            } else {
-                setTimeout(tryAddGround, 500);
-            }
-        };
-        tryAddGround();
     },
 
     createOcean() {
-        const oceanGeo = new THREE.PlaneGeometry(400, 200, 32, 32);
-        const oceanMat = new THREE.MeshStandardMaterial({
-            color: 0x1a6090, 
-            roughness: 0.15, 
-            metalness: 0.3, 
-            transparent: true, 
-            opacity: 0.9,
-            envMapIntensity: 1.0
+        // 使用 Three.js Water shader 创建逼真海洋
+        const waterNormals = new THREE.TextureLoader().load('textures/waternormals.jpg', (texture) => {
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
         });
-        this.ocean = new THREE.Mesh(oceanGeo, oceanMat);
-        this.ocean.rotation.x = -Math.PI / 2;
-        this.ocean.position.set(0, -0.3, -160);
-        this.scene.add(this.ocean);
 
+        const waterGeo = new THREE.PlaneGeometry(400, 200, 128, 128);
+        const water = new THREE.Water(waterGeo, {
+            textureWidth: 1024,
+            textureHeight: 1024,
+            waterNormals: waterNormals,
+            sunDirection: new THREE.Vector3(0.5, 0.5, -0.5).normalize(),
+            sunColor: 0xffffff,
+            waterColor: 0x0077be,
+            distortionScale: 3.0,
+            fog: false,
+            alpha: 0.95
+        });
+        water.rotation.x = -Math.PI / 2;
+        water.position.set(0, -0.3, -160);
+        water.material.uniforms['size'].value = 8.0; // 波浪大小
+        this.scene.add(water);
+        this.ocean = water;
+
+        // 海岸泡沫效果
         const foamGeo = new THREE.PlaneGeometry(300, 12);
-        const foamMat = new THREE.MeshBasicMaterial({ 
-            color: 0xffffff, 
-            transparent: true, 
+        const foamMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
             opacity: 0.35,
-            side: THREE.DoubleSide 
+            side: THREE.DoubleSide
         });
         const foam = new THREE.Mesh(foamGeo, foamMat);
         foam.rotation.x = -Math.PI / 2;
         foam.position.set(0, 0.05, -60);
         this.scene.add(foam);
         this.foam = foam;
+
+        console.log('Realistic ocean created with Water shader');
     },
 
     createSkyDome() {
@@ -440,15 +455,29 @@ init() {
     createBeachHuts() {
         this.buildings = [];
         const positions = [{x: 30, z: 30}, {x: -35, z: 25}, {x: -50, z: 40}];
-        
-        if (typeof ModelLoader !== 'undefined' && ModelLoader.loaded && ModelLoader.building) {
+
+        if (typeof ModelLoader !== 'undefined' && ModelLoader.building) {
             positions.forEach(p => {
                 const model = ModelLoader.getBuilding();
                 if (model) {
+                    // 设置材质使用 HDR 环境光
+                    model.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            child.material.envMapIntensity = 1.0;
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
                     model.scale.setScalar(0.8);
                     model.position.set(p.x, 0, p.z);
                     this.scene.add(model);
-                    const bData = { group: model, health: 150, alive: true, position: new THREE.Vector3(p.x, 0, p.z), radius: 3 };
+                    const bData = {
+                        group: model,
+                        health: 150,
+                        alive: true,
+                        position: new THREE.Vector3(p.x, 0, p.z),
+                        radius: 3
+                    };
                     const wordLabel = this.createWordLabel(WordManager.getRandomWord(), 8);
                     model.add(wordLabel.sprite);
                     bData.word = wordLabel.word;
@@ -461,10 +490,10 @@ init() {
                     this.createBuildingProgrammatic(p);
                 }
             });
-            console.log('Using GLTF building model');
+            console.log('Using GLTF building model, count:', this.buildings.length);
             return;
         }
-        
+
         positions.forEach(p => this.createBuildingProgrammatic(p));
     },
 

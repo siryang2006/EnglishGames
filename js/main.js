@@ -131,6 +131,16 @@ init() {
         AircraftManager.update(dt);
         this.checkAnimalCollisions();
 
+        // 更新动物动画混合器
+        if (typeof AnimalManager !== 'undefined') {
+            AnimalManager.updateMixers(dt);
+        }
+
+        // 更新士兵动画混合器
+        if (typeof SoldierManager !== 'undefined') {
+            SoldierManager.updateMixers(dt);
+        }
+
         this.checkCollisions();
         BulletManager.update(dt);
         if (typeof MuzzleFlash !== 'undefined') MuzzleFlash.update(dt);
