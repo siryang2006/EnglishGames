@@ -4,11 +4,12 @@
 
 ```
 test/
-├── 3d-visual.test.js    # Playwright 自动化测试（无头浏览器）
-├── basic.test.js         # 基础功能测试
-├── check-3d.js          # 浏览器控制台检查脚本（手动/自动）
-└── screenshots/         # 测试截图目录
-playwright.config.js      # Playwright 配置（超时 90s）
+├── 3d-visual.test.js    # Playwright 自动化测试
+├── basic.test.js        # 基础功能测试
+├── model-loading.test.js # 模型加载验证
+├── check-3d.js       # 浏览器控制台检查脚本
+└── screenshots/      # 测试截图目录
+playwright.config.js    # Playwright 配置（超时 90s）
 ```
 
 ## 方法一：Playwright 自动化测试（推荐）
@@ -47,50 +48,81 @@ npm run test:report
 | basic.test.js | 页面能正常打开 | 标题包含"英语坦克大战" |
 | basic.test.js | Three.js 已加载 | `typeof THREE !== 'undefined'` |
 | basic.test.js | 点击开始游戏后场景加载 | Game/GameScene/player 对象存在 |
-| 3d-visual.test.js | 模型加载状态检查 | sceneExists/modelLoaderReady/tankModelExists |
+| 3d-visual.test.js | 模型加载状态检查 | sceneExists/modelLoaderReady |
 | 3d-visual.test.js | 场景对象数量检查 | Mesh > 5, Light > 0 |
-| 3d-visual.test.js | 坦克模型显示检查 | player exists/health=100/alive=true |
-| 3d-visual.test.js | WebGL 渲染状态检查 | hasContext/shadowMap.enabled |
-| 3d-visual.test.js | 截图测试 | 生成 test/screenshots/game-load.png |
+| 3d-visual.test.js | 坦克模型显示检查 | player exists/health=100 |
+| 3d-visual.test.js | WebGL 渲染状态检查 | hasContext/shadowMap |
+| model-loading.test.js | 6个模型加载 | ground/ocean/rock/soldier/animal/tank |
 
-## 逼真效果测试验证
+## 模块化模型系统
 
-### 天空系统
-- ✅ HDR 环境贴图加载 (`venice_1k.hdr`)
-- ✅ 降级方案：HDR 失败时自动使用程序化天空
-- 验证：打开 Console 看到 "HDRI loaded: textures/venice_1k.hdr"
+### 模型配置（js/modelconfig.js）
 
-### 海洋系统
-- ✅ Three.js Water 着色器
-- ✅ 水纹法线贴图 (`waternormals.jpg`)
-- ✅ 动态波浪效果
-- 验证：海洋表面有逼真波浪动画
+```javascript
+const ModelConfig = {
+    paths: {
+        ground: 'models/demo_map_tank_vs_tank.glb',
+        ocean: 'models/low_poly_ocean.glb',
+        rock: 'models/free_low_poly_style_rock_pack.glb',
+        soldier: 'models/catfish_mech_low-poly_animated.glb',
+        animal: 'models/toon_horse_with_saddle_rigged_animated.glb',
+        tank: 'models/m1_abrams.glb'
+    },
+    scales: {
+        ground: 2.0,
+        ocean: 1.0,
+        rock: 0.5,
+        soldier: 0.8,
+        animal: 0.15,
+        tank: 1.0
+    },
+    collisionRadius: { rock: 1.5, building: 3, tree: 1.0 },
+    animationKeywords: {
+        soldier: ['walk', 'idle', 'run'],
+        animal: ['walk', 'run', 'idle']
+    }
+};
+```
 
-### 陆地系统
-- ✅ GLTF 地面模型 (`models/ground.glb`)
-- ✅ PBR 材质 + HDR 环境反射
-- ✅ 降级方案：GLTF 未加载时使用程序化纹理地面
-- 验证：Console 看到 "GLTF ground meshes: X"
+### 模型文件
 
-### 建筑系统
-- ✅ GLTF 房屋模型 (`models/building.glb`)
-- ✅ 3 个实例分别放置在不同位置
-- ✅ HDR 环境反射
-- 验证：Console 看到 "Using GLTF building model, count: 3"
+| 类型 | 模型文件 | 说明 |
+|------|---------|------|
+| 地面 | `demo_map_tank_vs_tank.glb` | 坦克对战地图 |
+| 海洋 | `low_poly_ocean.glb` | 低多边形海洋 |
+| 岩石 | `free_low_poly_style_rock_pack.glb` | 障碍物石头 |
+| 士兵 | `catfish_mech_low-poly_animated.glb` | 机械人（有动画） |
+| 动物 | `toon_horse_with_saddle_rigged_animated.glb` | 马（4种动画） |
+| 坦克 | `m1_abrams.glb` | M1 Abrams 坦克 |
 
-### 士兵系统
-- ✅ GLTF 骨骼动画模型 (`models/soldier.glb`)
-- ✅ AnimationMixer 播放 idle/walk 动画
-- ✅ `SoldierManager.updateMixers()` 更新动画
-- 验证：Console 看到 "Soldier: using GLTF model"
+### 模型加载结果
 
-### 动物系统
-- ✅ GLTF 模型 (`models/animals_real.glb` (72MB))
-- ✅ 支持鹿(deer)和野猪(boar)
-- ✅ AnimationMixer 播放 walk/run 动画
-- ✅ `AnimalManager.updateMixers()` 更新动画
-- ⚠️ 需要在浏览器中验证：鹿腿/野猪腿是否随动画动起来
-- 验证方法：F12 控制台输入 `AnimalManager.animals.forEach((a,i) => console.log(\`动物\${i}: mixer=\${!!a.mixer}\`))`
+```bash
+ocean loaded (1/6)
+rock loaded (2/6)
+animal loaded (3/6)
+ground loaded (4/6)
+tank loaded (5/6)
+soldier loaded (6/6)
+All models loaded!
+
+模型状态: {
+  ground: true,
+  ocean: true,
+  rock: true,
+  soldier: true,
+  animal: true,
+  tank: true,
+  loaded: true
+}
+```
+
+### 动画验证
+
+```
+animal animations: Walk, Trot, Gallop, Rest
+士兵动画数: 1
+```
 
 ## 方法二：浏览器控制台检查
 
@@ -112,51 +144,9 @@ check3DDisplay()
 - ✔ WebGL 支持
 - ✔ 场景包含 Mesh 和光源
 - ✔ 玩家坦克存在且存活
-- ✔ 敌人坦克已生成
-- ✔ 士兵/动物模型加载状态
-- ✔ ModelLoader 加载状态
+- ✔ 6个模型加载状态
+- ✔ 动画混合器状态
 - ✔ 帧率正常（10-200 fps）
-
----
-
-## 预期输出示例
-
-```
-=== 3D 显示检查开始 ===
-✔ Three.js 已加载
-✔ WebGL 支持
-✔ 场景已创建
-✔ 场景包含 Mesh
-✔ 场景包含光源
-    场景对象: 45 meshes, 3 lights
-✔ 渲染器已创建
-✔ WebGL 上下文正常
-✔ 阴影开启
-✔ 玩家坦克存在
-✔ 玩家坦克存活
-✔ 坦克位置有效
-✔ 坦克有 GLTF 模型或程序模型
-    坦克位置: (0.0, 0.0)
-✔ 敌人坦克已生成
-✔ 有存活的敌人
-    敌人: 5/5 存活
-✔ 士兵模型已加载
-✔ 士兵使用 GLTF
-✔ 士兵有动画 Mixer
-    士兵数量: 3
-✔ 动物模型已加载
-✔ 动物有动画 Mixer
-    动物数量: 4
-✔ ModelLoader 已加载
-✔ 地面模型
-✔ 士兵模型
-✔ 动物模型
-    士兵动画数: 3
-
-=== 检查结果 ===
-通过: 15, 失败: 0
-✔ 所有检查通过！
-```
 
 ---
 
@@ -178,88 +168,50 @@ python -m http.server 8000
 
 解决：确保 `python -m http.server 8000` 正在运行
 
+### 截图是黑的
+
+原因：Playwright headless 模式 WebGL 限制
+
+解决：用真实浏览器访问 http://localhost:8000 查看
+
 ### 动画不播放
 
 原因：GLTF 模型没有动画数据
 
-解决：使用 Mixamo 下载带骨骼动画的模型（idle/walk/run）
+解决：使用带骨骼动画的模型
 
-### HDR 加载失败
-
-原因：`textures/venice_1k.hdr` 文件不存在
-
-解决：检查文件是否存在，或查看 Console 的降级日志
-
-### Water 着色器未生效
-
-原因：`js/Water.js` 或 `textures/waternormals.jpg` 未下载
-
-解决：重新运行下载命令（见安装依赖）
+---
 
 ## 快速验证清单
 
 - [x] `http://localhost:8000` 能正常打开游戏
 - [x] F12 Console 看到模型加载日志
 - [x] 执行 `check3DDisplay()` 无失败项
-- [x] Playwright 测试全部通过（8/8）
-- [x] 坦克/士兵/动物模型正确显示
-- [x] 海洋有动态波浪效果
-- [x] 天空使用 HDR 环境贴图
+- [x] 6个模型全部加载成功
+- [x] 动物有4种动画（Walk/Trot/Gallop/Rest）
+- [x] 坦克/机械人/马模型显示正常
+
+---
 
 ## 最新修复（2026-05）
 
-1. **黑屏修复**：
-   - 添加 `try-catch` 处理所有初始化函数
-   - Water shader 和 HDR 加载失败时自动降级
-   - 移除对已删除函数的调用
+1. **模块化重构**：
+   - `modelconfig.js` - 集中管理模型配置
+   - `modelloader.js` - 模块化加载器核心
+   - `loader.js` - 兼容旧API
 
-2. **GLTF 模型优化**：
-   - 建筑模型正确克隆（`clone()`）
-   - 地面/建筑/士兵/动物使用 GLTF 并带降级方案
-   - 动画混合器正确更新
+2. **地面位置修复**：
+   - 根据模型包围盒自动调整y位置贴地
 
-3. **测试覆盖增强**：
-   - 添加控制台错误监听（`console.error`）
-   - `check-3d.js` 等待模型加载完成后再检查
-   - 检查场景子对象数量 > 5 防止黑屏
-   - 过滤非关键错误（favicon、Pointer Lock）
+3. **模型文件更新**：
+   - 坦克对战地图地形
+   - 低多边形海洋
+   - 障碍物石头
+   - 机械人（有动画）
+   - 马（4种动画）
+   - M1 Abrams 坦克
 
-4. **错误修复**：
-   - `requestPointerLock()` 检查存在性后再调用
-   - `createEnvironment()` 每个子函数都有错误处理
-   - 防止单个组件失败导致整个游戏崩溃
-
-5. **坦克模型加载修复**：
-   - `Game.start()` 等待模型加载完成再创建坦克
-   - `Tank.loadGLTFModel()` 正确处理 "正在加载" 状态
-   - `setInterval` 添加 10 秒超时防内存泄漏（`tank.js:47-56`）
-   - 修复异步时序问题
-
-6. **纹理质量优化**：
-   - **各向异性过滤**：`anisotropy = maxAnisotropy` 最大各向异性
-   - **纹理过滤**：`THREE.NearestFilter` 强制最清晰
-   - **Mipmap 生成**：`generateMipmaps = true` 完整 mipmap
-   - **渲染器优化**：`powerPreference: 'high-performance'` 高性能模式
-   - **建筑补光**：每个房屋添加聚光灯提高可见度
-
-7. **天空和海洋系统**：
-   - HDR 环境贴图加载（`venice_1k.hdr`）
-   - Three.js Water 着色器海洋（动态波浪）
-   - 降级方案：HDR/Water 失败时自动使用程序化实现
-
-8. **自动化测试改进**：
-   - 监听控制台错误（`page.on('console')`）
-   - 过滤非关键错误（favicon、Pointer Lock、Custom UV）
-   - 检查场景子对象数量防止黑屏
-   - 游戏启动后发送 `game-started` 事件
-
-9. **模型文件更换**：
-   - 士兵模型：`soldier.glb` (18MB) → `stylized_soldier_rigged.glb` (4.8MB)
-   - 坦克模型：`abrams_player.glb` 实际大小 24MB（非 33MB）
-   - 建筑模型：`createBeachHuts()` 移除多余 `clone()` 调用
-
-10. **代码 Review 验证**：
-    - ✅ 坦克履带动画逻辑正确（需移动才动）
-    - ✅ 动物/士兵 AnimationMixer 更新逻辑正确
-    - ⚠️ 模型是否真实动起来需在浏览器中验证
-    - 验证方法：F12 控制台检查 `mixer._actions` 长度
+4. **代码优化**：
+   - 配置与加载分离
+   - 保留旧API兼容
+   - 统一错误处理

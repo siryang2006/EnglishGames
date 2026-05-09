@@ -25,8 +25,8 @@ load(scene, onLoad, onError) {
         this.loading = true;
         const loader = new THREE.GLTFLoader();
         
-        const modelPath = 'models/abrams_player.glb';
-        console.log('Loading Abrams tank model from:', modelPath);
+        const modelPath = 'models/m1_abrams.glb';
+        console.log('Loading M1 Abrams tank model from:', modelPath);
         
         loader.load(modelPath, (gltf) => {
             const model = gltf.scene;

@@ -12,6 +12,41 @@
 
 由于浏览器安全限制，直接双击 `index.html` 无法加载 3D 模型。必须使用本地 HTTP 服务器。
 
+## 3D 模型配置
+
+游戏使用模块化模型系统，配置文件位于 `js/modelconfig.js`。
+
+### 模型列表
+
+| 类型 | 模型文件 | 说明 |
+|------|---------|------|
+| 地面 | `demo_map_tank_vs_tank.glb` | 坦克对战地图地形 |
+| 海洋 | `low_poly_ocean.glb` | 低多边形海洋 |
+| 岩石 | `free_low_poly_style_rock_pack.glb` | 障碍物石头 |
+| 士兵 | `catfish_mech_low-poly_animated.glb` | 机械人（有行走动画） |
+| 动物 | `toon_horse_with_saddle_rigged_animated.glb` | 马（有4种动画） |
+| 坦克 | `m1_abrams.glb` | M1 Abrams 坦克 |
+
+### 修改模型
+
+1. 下载模型到 `models/` 目录
+2. 修改 `js/modelconfig.js` 中的路径和参数
+3. 修改 `js/scene.js` 中的缩放比例
+
+```javascript
+// js/modelconfig.js
+const ModelConfig = {
+    paths: {
+        ground: 'models/你的地面.glb',
+        // ...
+    },
+    scales: {
+        ground: 2.0,
+        // ...
+    }
+};
+```
+
 ## 游戏玩法
 
 - 玩家坦克上方显示中文和音标，周围所有目标上显示英文单词
@@ -36,65 +71,44 @@
 - **水纹法线贴图**：`waternormals.jpg` 提供细节波浪
 
 ### 陆地系统
-- **GLTF 地面模型**：优先使用 `models/ground.glb`（159MB 高精度地形）
+- **GLTF 地面模型**：优先使用自定义地形模型
 - **PBR 材质**：金属度/粗糙度/环境光反射
 - **各向异性过滤**：`anisotropy = max` 确保纹理清晰
-- **降级方案**：GLTF 未加载时使用程序化纹理地面
-
-### 建筑系统
-- **GLTF 房屋模型**：使用 `models/building.glb`（4.5MB）
-- **多实例支持**：在 3 个不同位置实例化 3 个房屋
-- **纹理优化**：`THREE.NearestFilter` + `generateMipmaps` 确保清晰
-- **各向异性过滤**：最大各向异性设置
-- **补光照明**：每个房屋添加聚光灯提高可见度
-
-### 士兵系统
-- **GLTF 骨骼动画**：使用 `models/stylized_soldier_rigged.glb`（4.8MB）
-- **动画混合器**：支持 idle/walk/run 动画切换
-- **动画更新**：`SoldierManager.updateMixers()` 实时更新动画
-- **智能缩放**：自动根据模型尺寸调整到 2.0m 高度
-- **阵营区分**：友军（绿色头盔）和敌军（红色头盔）
-
-### 动物系统
-- **GLTF 模型**：使用 `models/animals_real.glb`（72MB）
-- **多类型支持**：鹿（deer）和野猪（boar）
-- **动画混合器**：支持 walk/run/idle 动画
-- **动画更新**：`AnimalManager.updateMixers()` 实时更新
-- **验证**：需在浏览器中检查动画是否播放（鹿腿/野猪腿是否动）
+- **位置自动调整**：根据模型包围盒自动贴地
 
 ### 坦克系统
-- **M1A2 Abrams 主战坦克**：`models/abrams_player.glb`（24MB）
-- **PBR 材质**：金属度/粗糙度/环境光反射
-- **履带动画**：实时更新履带滚动效果（需坦克移动）
-- **加载同步**：`Game.start()` 等待模型加载完成再创建坦克
-- **超时保护**：10秒超时防止无限等待（见 `tank.js:47-56`）
+- **M1 Abrams 主战坦克**：PBR 材质
+- **履带动画**：实时更新履带滚动效果
+- **加载超时保护**：10秒超时防止无限等待
 
-## 技术改进与修复
+## 技术改进
 
-### 模型加载优化
-- **HDR 环境光照**：使用 `RGBELoader` 加载 `.hdr` 贴图
-- **Water 着色器**：逼真海洋波浪和反射效果
-- **GLTF 动画系统**：`AnimationMixer` 播放骨骼动画
-- **环境光反射**：所有 PBR 材质使用 HDR 环境贴图
-- **异步模型加载**：所有 GLTF 模型异步加载，不阻塞游戏启动
+### 模块化代码
 
-### 纹理质量优化
-- **各向异性过滤**：`anisotropy = maxAnisotropy` 最大各向异性
-- **纹理过滤**：`THREE.NearestFilter` 强制最清晰纹理
-- **Mipmap 生成**：`generateMipmaps = true` 完整 mipmap
-- **纹理更新**：`needsUpdate = true` 标志正确设置
+```
+js/
+├── modelconfig.js    # 模型配置（路径、缩放、碰撞参数）
+├── modelloader.js  # 模块化加载器核心
+├── loader.js     # 兼容旧API
+├── scene.js     # 3D场景
+├── tank.js     # 坦克类
+├── soldier.js  # 士兵机械人类
+├── animal.js  # 动物类
+└── main.js   # 游戏主循环
+```
 
-### 渲染器优化
-- **高性能模式**：`powerPreference: 'high-performance'`
-- **输出编码**：sRGB
-- **色调映射**：ACES Filmic
+### 动画支持
+
+- 士兵机械人：带骨骼绑定的行走动画
+- 动物马：4种动画（Walk, Trot, Gallop, Rest）
+- 坦克：履带滚动动画
 
 ### 代码修复（2026-05）
+
 1. **黑屏修复**：所有 init 函数添加 try-catch
-2. **坦克模型加载**：`setInterval` 添加 10 秒超时（防内存泄漏）
-3. **建筑模型**：移除多余 `clone()` 调用
-4. **士兵模型**：更换为 `stylized_soldier_rigged.glb`（带完整绑定）
-5. **测试覆盖**：添加控制台错误监听和场景子对象检查
+2. **模型位置调整**：根据包围盒自动调整y位置贴地
+3. **模块化重构**：配置与加载分离
+4. **兼容性**：保留旧API接口
 
 ## 操作说明
 
@@ -138,29 +152,31 @@
 
 ```
 ├── index.html          # 入口页面
-├── css/style.css       # UI 样式
+├── css/style.css     # UI 样式
 ├── js/
 │   ├── three.min.js    # Three.js 核心
 │   ├── RGBELoader.js   # HDR 贴图加载器
 │   ├── Water.js        # 海洋着色器
 │   ├── GLTFLoader.js   # GLTF 模型加载器
+│   ├── modelconfig.js   # 模型配置
+│   ├── modelloader.js  # 模块化加载器
 │   ├── words.js        # 单词库（含音标）+ WordManager
 │   ├── scene.js       # 3D 场景、海洋、建筑、HDR 天空
 │   ├── tank.js        # 坦克类 + AI
-│   ├── soldier.js     # 士兵类（GLTF 动画）
-│   ├── animal.js      # 动物类（GLTF 动画）
-│   ├── aircraft.js    # 飞机类
-│   ├── bullet.js      # 子弹类
-│   ├── explosion.js  # 爆炸效果
+│   ├── soldier.js     # 士兵类（机械人动画）
+│   ├── animal.js     # 动物类（马动画）
+│   ├── aircraft.js   # 飞机类
+│   ├── bullet.js    # 子弹类
+│   ├── explosion.js # 爆炸效果
 │   ├── muzzleflash.js # 炮口火焰特效
-│   ├── audio.js      # Web Audio 音效系统
-│   ├── pickup.js     # 弹药补给
-│   ├── spell.js      # 单词匹配系统（中英对照）
-│   ├── input.js      # 输入管理（Pointer Lock）
-│   ├── ui.js         # HUD 界面 + 得分/错误反馈
-│   ├── loader.js      # GLTF 模型加载器（地面/建筑/士兵/动物）
-│   ├── tankmodel.js   # 坦克 GLTF 模型加载
-│   └── main.js       # 游戏主循环
+│   ├── audio.js   # Web Audio 音效系统
+│   ├── pickup.js  # 弹药补给
+│   ├── spell.js  # 单词匹配系统（中英对照）
+│   ├── input.js  # 输入管理（Pointer Lock）
+│   ├── ui.js    # HUD 界面 + 得分/错误反馈
+│   ├── loader.js # GLTF 模型加载器（兼容旧API）
+│   ├── tankmodel.js # 坦克 GLTF 模型加载
+│   └── main.js  # 游戏主循环
 ├── models/            # GLTF 3D 模型（.glb）
 ├── textures/          # 纹理贴图（HDR、法线贴图）
 └── test/             # Playwright 自动化测试
@@ -181,10 +197,11 @@ python -m http.server 8000
 
 # 运行测试
 npm test
-
-# 查看报告
-npm run test:report
 ```
+
+### 注意
+
+Playwright headless 模式下 WebGL 可能有渲染限制。如果测试显示黑屏但控制台显示模型加载成功，请用真实浏览器打开 http://localhost:8000 验证。
 
 ### 测试结果
 
@@ -192,11 +209,11 @@ npm run test:report
 - ✅ Three.js 已加载
 - ✅ 游戏场景创建成功
 - ✅ 玩家坦克生成
-- ✅ 模型加载状态检查
-- ✅ 场景对象数量检查（Mesh > 5, Light > 0）
+- ✅ 6个模型加载成功
+- ✅ 场景对象数量检查
 - ✅ 坦克模型显示检查
 - ✅ WebGL 渲染状态检查
-- ✅ 截图测试
+- ✅ 4种动物动画加载
 
 ## 部署
 

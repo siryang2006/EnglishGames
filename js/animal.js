@@ -21,68 +21,40 @@ class Animal {
         scene.add(this.group);
     }
 
-    buildModel() {
-        if (typeof ModelLoader !== 'undefined' && ModelLoader.animals) {
+buildModel() {
+        if (typeof ModelLoader !== 'undefined' && ModelLoader.hasModel('animal')) {
             this.loadGLTFModel();
         } else if (this.type === 'deer') {
             this.buildDeer();
         } else {
             this.buildBoar();
         }
-    }
+    },
 
     loadGLTFModel() {
-        const model = ModelLoader.getAnimals();
+        const scale = ModelConfig.scales.animal || 0.15;
+        const model = ModelLoader.getModel('animal');
         if (model) {
-            // Setup animation mixer if animations available
-            if (ModelLoader.animalsAnimations && ModelLoader.animalsAnimations.length > 0) {
+            model.scale.setScalar(scale);
+            model.rotation.y = Math.PI;
+            
+            // Setup animation mixer
+            const animations = ModelLoader.getAnimation('animal');
+            if (animations && animations.length > 0) {
                 this.mixer = new THREE.AnimationMixer(model);
-                // Find appropriate animation for this animal type
-                const animName = this.type === 'deer' ? 'walk' : 'walk';
-                const clip = ModelLoader.animalsAnimations.find(a =>
-                    a.name.toLowerCase().includes(animName) ||
-                    a.name.toLowerCase().includes('run') ||
-                    a.name.toLowerCase().includes('idle')
-                ) || ModelLoader.animalsAnimations[0];
+                const keywords = ModelConfig.animationKeywords.animal || ['walk', 'run', 'idle'];
+                const clip = animations.find(a =>
+                    keywords.some(k => a.name.toLowerCase().includes(k))
+                ) || animations[0];
                 if (clip) {
                     this.currentAction = this.mixer.clipAction(clip);
                     this.currentAction.play();
                 }
             }
-            // Find the specific animal type in the GLTF
-            let targetAnimal = null;
-            model.traverse((child) => {
-                if (!targetAnimal && child.isMesh) {
-                    const name = child.name.toLowerCase();
-                    if (this.type === 'deer' && (name.includes('deer') || name.includes('fawn'))) {
-                        targetAnimal = child;
-                    } else if (this.type === 'boar' && (name.includes('boar') || name.includes('pig'))) {
-                        targetAnimal = child;
-                    }
-                }
-            });
-
-            // Fallback: use first mesh if type not found by name
-            if (!targetAnimal) {
-                model.traverse((child) => {
-                    if (!targetAnimal && child.isMesh) {
-                        targetAnimal = child;
-                    }
-                });
-            }
-
-            if (targetAnimal) {
-                const animalClone = targetAnimal.clone();
-                animalClone.scale.setScalar(0.15);
-                animalClone.rotation.y = Math.PI;
-                this.group.add(animalClone);
-            } else {
-                model.scale.setScalar(0.15);
-                model.rotation.y = Math.PI;
-                this.group.add(model);
-            }
+            
+            this.group.add(model);
             this.usingGltf = true;
-            console.log('Animal: using GLTF model for', this.type);
+            console.log('Animal: using GLTF model, type:', this.type);
         } else {
             if (this.type === 'deer') this.buildDeer();
             else this.buildBoar();

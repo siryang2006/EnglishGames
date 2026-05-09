@@ -42,7 +42,7 @@ const Game = {
 
         if (typeof ModelLoader !== 'undefined') {
             try {
-                ModelLoader.load(GameScene.scene, () => {
+                ModelLoader.load(GameScene.scene, ModelConfig, () => {
                     console.log('All models loaded!');
                     window.allModelsReady = true;
                 });

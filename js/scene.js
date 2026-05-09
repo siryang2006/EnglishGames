@@ -198,8 +198,9 @@ init() {
         const size = 250;
 
         // 尝试使用 GLTF 地面模型
-        if (typeof ModelLoader !== 'undefined' && ModelLoader.ground) {
-            const gModel = ModelLoader.getGround();
+        if (typeof ModelLoader !== 'undefined' && ModelLoader.hasModel('ground')) {
+            const scale = ModelConfig.scales.ground || 2.0;
+            const gModel = ModelLoader.getModel('ground');
             if (gModel) {
                 const maxAnisotropy = this.renderer ? this.renderer.capabilities.getMaxAnisotropy() : 1;
 
@@ -208,7 +209,6 @@ init() {
                         child.material = child.material.clone();
                         child.material.envMapIntensity = 1.0;
 
-                        // 优化纹理过滤，提高清晰度
                         if (child.material.map) {
                             child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
                             child.material.map.magFilter = THREE.LinearFilter;
@@ -230,11 +230,14 @@ init() {
                     }
                 });
 
-                gModel.scale.setScalar(2.0);
-                gModel.position.y = 0;
+                gModel.scale.setScalar(scale);
+                // 调整位置使模型贴地
+                const box = new THREE.Box3().setFromObject(gModel);
+                const minY = box.min.y * scale;
+                gModel.position.y = -minY;
                 this.scene.add(gModel);
-                console.log('GLTF ground added, scene children:', this.scene.children.length);
-                return; // 使用 GLTF 地面，跳过程序化地面
+                console.log('GLTF ground added, scale:', scale, 'y offset:', -minY);
+                return;
             }
         }
 
@@ -500,8 +503,43 @@ init() {
     },
 
     createRocks() {
-        const rockColors = [0x888888, 0x777766, 0x666655];
         const positions = [{x: -30, z: 15}, {x: 40, z: 20}, {x: -15, z: 45}, {x: 55, z: 50}];
+        
+        if (typeof ModelLoader !== 'undefined' && ModelLoader.hasModel('rock')) {
+            const baseScale = ModelConfig.scales.rock || 0.5;
+            const collisionR = ModelConfig.collisionRadius.rock || 1.5;
+            
+            positions.forEach(p => {
+                const rockModel = ModelLoader.getModel('rock');
+                if (!rockModel) return;
+                
+                const scale = baseScale + Math.random() * 0.5;
+                rockModel.scale.setScalar(scale);
+                rockModel.position.set(p.x, 0, p.z);
+                rockModel.rotation.y = Math.random() * Math.PI * 2;
+                this.scene.add(rockModel);
+                
+                const rockData = { 
+                    group: rockModel, 
+                    position: new THREE.Vector3(p.x, 0, p.z), 
+                    radius: collisionR * scale, 
+                    alive: true, 
+                    health: 80 
+                };
+                const wordLabel = this.createWordLabel(WordManager.getRandomWord(), 2 + scale);
+                rockModel.add(wordLabel.sprite);
+                rockData.word = wordLabel.word;
+                rockData.letter = wordLabel.word.en;
+                rockData._drawLabel = wordLabel.drawLabel;
+                rockData.updateLetterLabel = function() { this._drawLabel(this.word.en); };
+                this.rocks.push(rockData);
+                this.obstacles.push(rockData);
+            });
+            console.log('Rocks created from GLTF model');
+            return;
+        }
+
+        const rockColors = [0x888888, 0x777766, 0x666655];
         positions.forEach(p => {
             const s = 0.8 + Math.random() * 1.5;
             const rockMat = new THREE.MeshStandardMaterial({
