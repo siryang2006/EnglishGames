@@ -323,10 +323,10 @@ init() {
                 texture.wrapT = THREE.RepeatWrapping;
             });
 
-            const waterGeo = new THREE.PlaneGeometry(400, 200, 128, 128);
+            const waterGeo = new THREE.PlaneGeometry(1000, 500, 256, 256);
             const water = new THREE.Water(waterGeo, {
-                textureWidth: 1024,
-                textureHeight: 1024,
+                textureWidth: 2048,
+                textureHeight: 2048,
                 waterNormals: waterNormals,
                 sunDirection: new THREE.Vector3(0.5, 0.5, -0.5).normalize(),
                 sunColor: 0xffffff,
@@ -336,7 +336,7 @@ init() {
                 alpha: 0.95
             });
             water.rotation.x = -Math.PI / 2;
-            water.position.set(0, -0.3, -160);
+            water.position.set(0, -0.3, -400);
             water.material.uniforms['size'].value = 8.0;
             this.scene.add(water);
             this.ocean = water;
