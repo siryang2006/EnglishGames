@@ -566,7 +566,7 @@ class Tank {
 
     getBarrelTip() {
         if (this.gltfModel) {
-            const forward = new THREE.Vector3(1, 0, 0);
+            const forward = new THREE.Vector3(0, 0, 1);
             forward.applyQuaternion(this.group.quaternion);
             const pos = this.group.position.clone();
             pos.y += 1;
@@ -578,7 +578,7 @@ class Tank {
 
     getBarrelDirection() {
         if (this.gltfModel) {
-            const forward = new THREE.Vector3(1, 0, 0);
+            const forward = new THREE.Vector3(0, 0, 1);
             forward.applyQuaternion(this.group.quaternion);
             forward.normalize();
             return forward;
