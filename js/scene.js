@@ -198,7 +198,7 @@ init() {
         const size = 250;
 
         // 尝试使用 GLTF 地面模型
-        if (typeof ModelLoader !== 'undefined' && ModelLoader.hasModel('ground')) {
+        if (false && typeof ModelLoader !== 'undefined' && ModelLoader.hasModel('ground')) {
             const scale = ModelConfig.scales.ground || 2.0;
             const gModel = ModelLoader.getModel('ground');
             if (gModel) {
