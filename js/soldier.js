@@ -28,14 +28,12 @@ class Soldier {
     }
 
     buildModel() {
-        if (typeof ModelLoader !== 'undefined' && ModelLoader.soldier) {
-            this.loadGLTFModel();
-        } else {
-            this.buildPrimitiveModel();
-        }
+        // No model - disabled
     }
 
     loadGLTFModel() {
+        // Disabled
+        return;
         const model = ModelLoader.getSoldier();
         if (model) {
             // 计算模型实际大小，自动调整缩放

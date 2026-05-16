@@ -27,6 +27,25 @@
 | 动物 | `toon_horse_with_saddle_rigged_animated.glb` | 马（有4种动画） |
 | 坦克 | `m1_abrams.glb` | M1 Abrams 坦克 |
 
+### 坦克模型方向说明
+
+**重要**: m1_abrams.glb 模型的方向定义:
+- 炮口方向: **-X 方向** (向左)
+- 前进方向: 与炮口一致 (沿 -X 方向)
+- 旋转: A键左转，D键右转
+
+代码绑定关系 (`js/tank.js`):
+```javascript
+// 炮口方向
+getBarrelTip() / getBarrelDirection(): new THREE.Vector3(-1, 0, 0)
+```
+
+代码绑定关系 (`js/main.js`):
+```javascript
+// 前进方向
+const forwardDir = new THREE.Vector3(-1, 0, 0).applyQuaternion(p.group.quaternion);
+```
+
 ### 修改模型
 
 1. 下载模型到 `models/` 目录

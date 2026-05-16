@@ -5,39 +5,9 @@ const AircraftGLTFLoader = {
     modelRotationY: 0,
     
     load(onLoad) {
-        if (this.loaded && this.model) {
-            if (onLoad) onLoad();
-            return;
-        }
-        
-        if (window.location.protocol === 'file:') {
-            this.loaded = true;
-            if (onLoad) onLoad();
-            return;
-        }
-        
-        const loader = new THREE.GLTFLoader();
-        loader.load('models/wwii_soviet_plane_with_interior.glb', (gltf) => {
-            this.model = gltf.scene;
-            this.model.traverse((child) => {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                }
-            });
-            const box = new THREE.Box3().setFromObject(this.model);
-            const size = box.getSize(new THREE.Vector3());
-            const scale = 3.0 / Math.max(size.x, size.y, size.z);
-            this.model.scale.setScalar(scale);
-            this.model.position.y = -box.min.y * scale;
-            this.loaded = true;
-            console.log('Aircraft GLTF loaded, scale:', scale);
-            if (onLoad) onLoad();
-        }, null, (err) => {
-            console.warn('Aircraft model load failed:', err);
-            this.loaded = true;
-            if (onLoad) onLoad();
-        });
+        console.log('Aircraft model loading disabled');
+        this.loaded = true;
+        if (onLoad) onLoad();
     },
     
     getModel() {

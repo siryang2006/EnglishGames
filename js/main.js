@@ -30,26 +30,25 @@ const Game = {
             try {
                 TankGLTFLoader.load(GameScene.scene, (model) => {
                     console.log('Real Abrams tank model ready, size:', model ? model.scale.x : 'default');
-                    // 模型加载完成后，如果游戏还没开始，标记就绪
                     window.tankModelReady = true;
                 }, (err) => {
-                    console.warn('Tank model load failed, using default:', err.message || err);
+                    console.warn('Tank model load failed:', err.message || err);
                 });
             } catch(e) {
                 console.warn('TankGLTFLoader exception:', e.message);
             }
         }
 
-        if (typeof ModelLoader !== 'undefined') {
-            try {
-                ModelLoader.load(GameScene.scene, ModelConfig, () => {
-                    console.log('All models loaded!');
-                    window.allModelsReady = true;
-                });
-            } catch(e) {
-                console.warn('ModelLoader exception:', e.message);
-            }
-        }
+        // if (typeof ModelLoader !== 'undefined') {
+        //     try {
+        //         ModelLoader.load(GameScene.scene, ModelConfig, () => {
+        //             console.log('All models loaded!');
+        //             window.allModelsReady = true;
+        //         });
+        //     } catch(e) {
+        //         console.warn('ModelLoader exception:', e.message);
+        //     }
+        // }
     },
 
     start() {
@@ -96,13 +95,15 @@ const Game = {
         PickupManager.init(GameScene.scene);
         AnimalManager.init(GameScene.scene);
         AnimalManager.spawn(8);
-        if (typeof AircraftGLTFLoader !== 'undefined') {
-            AircraftGLTFLoader.load(() => {
-                AircraftManager.init(GameScene.scene);
-            });
-        } else {
-            AircraftManager.init(GameScene.scene);
-        }
+        // Aircraft disabled
+        // if (typeof AircraftGLTFLoader !== 'undefined') {
+        //     AircraftGLTFLoader.load(() => {
+        //         AircraftManager.init(GameScene.scene);
+        //     });
+        // } else {
+        //     AircraftManager.init(GameScene.scene);
+        // }
+        AircraftManager.init(GameScene.scene);
         SpellTracker.init(this.player);
 
         UI.reset();
@@ -202,13 +203,13 @@ const Game = {
         if (InputManager.isKeyDown('KeyD')) deltaRot -= rotSpeed * dt;
         p.group.rotation.y += deltaRot;
 
-        // W/S 前进后退
+        // W/S 前进后退 (坦克炮口朝向 -X，所以前进方向也是 -X)
         let moveForward = 0;
         if (InputManager.isKeyDown('KeyW')) moveForward = 1;
         if (InputManager.isKeyDown('KeyS')) moveForward = -1;
 
         if (moveForward !== 0) {
-            const forwardDir = new THREE.Vector3(1, 0, 0).applyQuaternion(p.group.quaternion);
+            const forwardDir = new THREE.Vector3(-1, 0, 0).applyQuaternion(p.group.quaternion);
             forwardDir.y = 0;
             forwardDir.normalize();
             const oldPos = p.group.position.clone();
@@ -686,16 +687,17 @@ function startGame() {
 }
 
 function restartGame() {
+    // Scene recreation disabled
     Game.cleanup();
-    const toRemove = [];
-    GameScene.scene.traverse(child => { if (child !== GameScene.scene) toRemove.push(child); });
-    toRemove.forEach(obj => GameScene.scene.remove(obj));
-    GameScene.createLights();
-    GameScene.createGround();
-    GameScene.createOcean();
-    GameScene.createSkyDome();
-    GameScene.createEnvironment();
-    GameScene.createDustParticles();
+    // const toRemove = [];
+    // GameScene.scene.traverse(child => { if (child !== GameScene.scene) toRemove.push(child); });
+    // toRemove.forEach(obj => GameScene.scene.remove(obj));
+    // GameScene.createLights();
+    // GameScene.createGround();
+    // GameScene.createOcean();
+    // GameScene.createSkyDome();
+    // GameScene.createEnvironment();
+    // GameScene.createDustParticles();
     Game.start();
 }
 

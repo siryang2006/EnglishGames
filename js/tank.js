@@ -564,9 +564,12 @@ class Tank {
         this.playerRing = ring;
     }
 
+    // m1_abrams.glb 模型说明: 炮口朝向 -X 方向 (向左)
+    // 坦克前进方向为 group.rotation.y 的 forward (Z+ 负方向)
+    // 炮口方向与模型一致，指向 -X
     getBarrelTip() {
         if (this.gltfModel) {
-            const forward = new THREE.Vector3(0, 0, 1);
+            const forward = new THREE.Vector3(-1, 0, 0);
             forward.applyQuaternion(this.group.quaternion);
             const pos = this.group.position.clone();
             pos.y += 1;
@@ -578,7 +581,7 @@ class Tank {
 
     getBarrelDirection() {
         if (this.gltfModel) {
-            const forward = new THREE.Vector3(0, 0, 1);
+            const forward = new THREE.Vector3(-1, 0, 0);
             forward.applyQuaternion(this.group.quaternion);
             forward.normalize();
             return forward;

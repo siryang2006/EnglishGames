@@ -68,6 +68,10 @@ init() {
     },
 
     loadHDRI() {
+        // HDRI disabled
+        this.scene.background = new THREE.Color(0x87ceeb); // Solid blue sky
+        return;
+        
         // 使用 HDR 贴图创建逼真天空和环境光
         if (typeof THREE.RGBELoader === 'undefined') {
             console.warn('RGBELoader not available, using procedural sky');
@@ -195,6 +199,9 @@ init() {
     },
 
     createGround() {
+        // Ground model disabled - no fallback
+        return;
+        
         const size = 250;
 
         // 尝试使用 GLTF 地面模型
@@ -310,6 +317,9 @@ init() {
     },
 
     createOcean() {
+        // Ocean disabled - no fallback
+        return;
+        
         // 检查 Three.js Water shader 是否可用
         if (typeof THREE.Water === 'undefined') {
             console.warn('THREE.Water not available, using procedural ocean');
@@ -393,6 +403,9 @@ init() {
     },
 
     createSkyDome() {
+        // Disabled - no fallback
+        return;
+        
         const skyGeo = new THREE.SphereGeometry(250, 64, 32);
         const canvas = document.createElement('canvas');
         canvas.width = 2048;
@@ -458,11 +471,12 @@ init() {
         this.ships = [];
         this.obstacles = [];
 
-        try { this.createPalmTrees(); } catch(e) { console.warn('createPalmTrees failed:', e.message); }
-        try { this.createRocks(); } catch(e) { console.warn('createRocks failed:', e.message); }
+        // Environment objects disabled
+        // try { this.createPalmTrees(); } catch(e) { console.warn('createPalmTrees failed:', e.message); }
+        // try { this.createRocks(); } catch(e) { console.warn('createRocks failed:', e.message); }
         // try { this.createBeachHuts(); } catch(e) { console.warn('createBeachHuts failed:', e.message); }
-        try { this.createBarrels(); } catch(e) { console.warn('createBarrels failed:', e.message); }
-        try { this.createShips(); } catch(e) { console.warn('createShips failed:', e.message); }
+        // try { this.createBarrels(); } catch(e) { console.warn('createBarrels failed:', e.message); }
+        // try { this.createShips(); } catch(e) { console.warn('createShips failed:', e.message); }
     },
 
     createPalmTrees() {

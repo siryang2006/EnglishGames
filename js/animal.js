@@ -22,16 +22,12 @@ class Animal {
     }
 
     buildModel() {
-        if (typeof ModelLoader !== 'undefined' && ModelLoader.animals) {
-            this.loadGLTFModel();
-        } else if (this.type === 'deer') {
-            this.buildDeer();
-        } else {
-            this.buildBoar();
-        }
+        // No model - disabled
     }
 
     loadGLTFModel() {
+        // Disabled
+        return;
         const model = ModelLoader.getAnimals();
         if (model) {
             // Setup animation mixer if animations available
