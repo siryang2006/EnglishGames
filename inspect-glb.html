@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GLB Inspector</title>
+<style>
+body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
+h2 { color: #4caf50; margin-top: 30px; }
+pre { background: #222; padding: 10px; border-radius: 4px; overflow-x: auto; }
+.model { border: 1px solid #444; padding: 15px; margin: 10px 0; border-radius: 8px; background: #1a1a1a; }
+.mesh { color: #8bc34a; }
+.anim { color: #ff9800; }
+.bone { color: #64b5f6; }
+.loading { color: #888; }
+</style>
+</head>
+<body>
+<h1>GLB Model Inspector</h1>
+<p>Checking mesh composition and animations...</p>
+<div id="results"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const models = [
+  { name: 'madtrollstudio Soldier', file: 'models/soldier_madtrollstudio.glb' },
+  { name: 'J-Toastie Soldier', file: 'models/soldier_jtoastie.glb' },
+  { name: 'KolosStudios Soldier', file: 'models/soldier_kolosstudios.glb' },
+  { name: 'Umair Yaqub Soldier', file: 'models/soldier_umairyaqub.glb' },
+  { name: 'Quaternius Rifle', file: 'models/rifle_quaternius.glb' },
+  { name: 'Quaternius Soldier (current)', file: 'models/soldier_friendly.glb' },
+  { name: 'Quaternius SWAT (current)', file: 'models/soldier_enemy.glb' },
+];
+
+const resultsDiv = document.getElementById('results');
+const loader = new GLTFLoader();
+
+function collectMeshes(obj, depth = 0) {
+  const items = [];
+  const indent = '  '.repeat(depth);
+  if (obj.isMesh) {
+    const matInfo = obj.material ? (obj.material.name || 'unnamed') : 'none';
+    const boneCount = obj.skeleton ? obj.skeleton.bones.length : 0;
+    const geoInfo = obj.geometry ? `verts=${obj.geometry.attributes.position.count}` : 'no geo';
+    items.push(`${indent}⚪ Mesh: "${obj.name}" | mat="${matInfo}" | ${geoInfo} | bones=${boneCount} | children=${obj.children.length}`);
+  }
+  for (const child of obj.children) {
+    items.push(...collectMeshes(child, depth + 1));
+  }
+  return items;
+}
+
+function collectBonesNames(skeleton) {
+  if (!skeleton) return [];
+  return skeleton.bones.map(b => b.name);
+}
+
+async function inspectModel(name, path) {
+  const div = document.createElement('div');
+  div.className = 'model';
+  div.innerHTML = `<h2>${name}</h2><p class="loading">Loading...</p>`;
+  resultsDiv.appendChild(div);
+
+  try {
+    const gltf = await loader.loadAsync(path);
+    const scene = gltf.scene;
+    const meshes = collectMeshes(scene);
+    const anims = gltf.animations || [];
+
+    // Try to find skeleton bones from meshes
+    let allBones = [];
+    scene.traverse(child => {
+      if (child.isMesh && child.skeleton) {
+        allBones.push(...collectBonesNames(child.skeleton));
+      }
+    });
+    allBones = [...new Set(allBones)];
+
+    // Check for weapon-related mesh names
+    const weaponKeywords = ['gun', 'rifle', 'weapon', 'fire', 'barrel', 'muzzle', 'shot', 'bullet', 'arms', 'hand'];
+    const allMeshNames = meshes.map(m => m.toLowerCase());
+    const hasWeapon = weaponKeywords.some(kw => allMeshNames.some(m => m.includes(kw)));
+
+    const animNames = anims.map(a => `"${a.name}"`).join(', ');
+    
+    let boneInfo = allBones.length > 0 ? `<p class="bone">Bones (${allBones.length}): ${allBones.join(', ')}</p>` : '<p class="bone">No skeleton bones found</p>';
+
+    let weaponInfo = '';
+    if (hasWeapon) {
+      weaponInfo = '<p style="color: #4caf50; font-weight: bold;">✅ MAY HAVE WEAPON MESH! Check meshes list below.</p>';
+    } else {
+      weaponInfo = '<p style="color: #ff5722;">❌ No weapon-related mesh names detected.</p>';
+    }
+
+    div.innerHTML = `
+      <h2>${name}</h2>
+      ${weaponInfo}
+      <p class="anim">Animations (${anims.length}): ${animNames || 'none'}</p>
+      ${boneInfo}
+      <pre class="mesh">${meshes.join('\n') || 'no meshes'}</pre>
+    `;
+  } catch (err) {
+    div.innerHTML = `<h2>${name}</h2><p style="color: red;">Error: ${err.message}</p>`;
+  }
+}
+
+for (const m of models) {
+  await inspectModel(m.name, m.file);
+}
+</script>
+</body>
+</html>

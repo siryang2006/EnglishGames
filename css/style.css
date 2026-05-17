@@ -2,6 +2,7 @@
 
 body {
     overflow: hidden;
+    touch-action: none;
     background: #000;
     font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
     color: #fff;

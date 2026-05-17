@@ -49,6 +49,11 @@
 - 作者: Jungle Jim (CC Attribution)
 - 下载后重命名为 `soldier_enemy.glb` 放入 `models/` 目录
 
+**备选士兵模型**（14个动画，Public domain，但实际无内置动画）：
+- https://www.getglb.com/characters/character-soldier/
+- 下载链接: https://www.get3dmodels.com/download/Character-Soldier.glb
+- 1.27MB，21.4k顶点，Public domain
+
 ### 坦克模型方向绑定规则
 
 **核心原则：所有方向必须统一绑定到炮管朝向。**
@@ -189,14 +194,36 @@ js/
    - `clear()` → 清理场景
 4. **Soldier 类必备方法**：
    - `buildModel()` / `loadGLTFModel()` / `buildPrimitiveModel()`
-   - `takeDamage(amount)` → 扣血、更新血条、死亡标记
-   - `updateAI(dt)` → 巡逻逻辑
-   - `createHealthBar()` / `updateHealthBar()`
+   - `takeDamage(amount)` → 扣血、死亡标记
+   - `updateAI(dt)` → AI 巡逻 + 自动索敌射击
    - `createLetterLabel()` / `drawLetterLabel()`（仅敌军显示单词）
 5. **路径**：
-   - 友军: `models/soldier_friendly.glb`（默认不存在，fallback 到程序化模型）
-   - 敌军: `models/soldier_enemy.glb`（已下载，Sketchfab 导出，需 Z-up→Y-up 转换）
-6. **调试**：`test-model.html` 可独立测试 Soldier 类加载
+   - 友军: `models/soldier_friendly.glb`
+   - 敌军: `models/soldier_enemy.glb`
+6. **动画支持**：
+   - 当前 `soldier_friendly.glb` 和 `soldier_enemy.glb` 均无骨骼动画数据（`animations:[]`）
+   - 已实现程序化行走动画作为降级方案（正弦波上下颠簸 + 左右摇摆，v11）
+   - 如需真骨骼动画，可按以下步骤操作：
+     1. 下载纯骨骼模型（如 Sketchfab 搜索 "German Bundeswehr soldier rigged"）
+     2. 上传 https://www.mixamo.com 自动绑骨
+     3. 选 Walk / Idle 动画 → 下载 FBX With Skin
+     4. 用 https://anyconv.com/fbx-to-glb-converter/ 转 GLB
+     5. 替换 `models/` 目录对应文件
+7. **Soldier 战斗参数**：
+   - 索敌范围：80m
+   - 射击冷却：1.5 - 2.5 秒（随机）
+   - 伤害：30
+   - 生命值：30
+   - 友军攻击敌军，敌军优先攻击玩家（50m内），其次攻击友军
+8. **Soldier 子弹系统**（`js/bullet-soldier.js`）：
+   - 与坦克子弹完全分离，避免干扰
+   - 使用 Sprite 发光纹理实现可视弹丸（黄色，0.3单位大小）
+   - 速度 100m/s，寿命 2.5 秒
+   - 无特效（无辉光、灯光、拖尾）
+   - 碰撞检测复用坦克碰撞逻辑，通过 `isPlayerTeam` 标记区分阵营
+9. **调试**：
+   - `test-model.html` 可独立测试 Soldier 类加载
+   - `test-soldier-fire.html` 可独立测试 Soldier 射击和行走动画
 
 ## 操作说明
 

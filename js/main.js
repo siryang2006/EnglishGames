@@ -171,6 +171,7 @@ const Game = {
 
         this.checkCollisions();
         BulletManager.update(dt);
+        if (typeof SoldierBulletManager !== 'undefined') SoldierBulletManager.update(dt);
         if (typeof MuzzleFlash !== 'undefined') MuzzleFlash.update(dt);
         ExplosionManager.update(dt);
         UI.update(dt);
@@ -194,7 +195,7 @@ const Game = {
     handleInput(dt) {
         if (!this.player || !this.player.alive) return;
         const p = this.player;
-        const rotSpeed = p.rotSpeed || 3;
+        const rotSpeed = (p.rotSpeed || 3) * (InputManager.isKeyDown('ShiftLeft') || InputManager.isKeyDown('ShiftRight') ? 0.25 : 1);
 
         // A/D 旋转：A右转，D左转
         let deltaRot = 0;
@@ -221,9 +222,13 @@ const Game = {
         }
 
         this.aiming = InputManager.rightMouseDown || InputManager.isKeyDown('KeyR');
-        const sensitivity = this.aiming ? 0.002 : 0.003;
+        const sensitivity = 0.003;
         const mouseDelta = InputManager.consumeMouseDelta();
-        this.playerYaw -= mouseDelta.dx * sensitivity;
+        if (this.aiming) {
+            p.group.rotation.y -= mouseDelta.dx * sensitivity * 0.5;
+        } else {
+            this.playerYaw -= mouseDelta.dx * sensitivity;
+        }
         this.aimPitch = Math.max(-0.5, Math.min(0.8, (this.aimPitch || 0) - mouseDelta.dy * sensitivity * 0.5));
 
         const targetFov = this.aiming ? this.aimFov : this.normalFov;
@@ -313,6 +318,42 @@ const Game = {
             const bPos = b.getPosition();
             if (b.isPlayer) this.checkPlayerBullet(b, bPos);
             else this.checkEnemyBullet(b, bPos);
+        }
+        if (typeof SoldierBulletManager !== 'undefined') {
+            const sbullets = SoldierBulletManager.bullets;
+            for (let i = sbullets.length - 1; i >= 0; i--) {
+                const b = sbullets[i];
+                if (!b.alive) continue;
+                const bPos = b.getPosition();
+                if (b.isPlayer) {
+                    const enemies = SoldierManager.getEnemySoldiers();
+                    for (const s of enemies) {
+                        if (bPos.distanceTo(s.group.position) < 1.0) {
+                            s.takeDamage(30);
+                            b.dispose();
+                            if (!s.alive) this.onEntityKilled(s);
+                            break;
+                        }
+                    }
+                } else {
+                    const friendlies = SoldierManager.getPlayerSoldiers();
+                    for (const s of friendlies) {
+                        if (bPos.distanceTo(s.group.position) < 1.0) {
+                            s.takeDamage(30);
+                            b.dispose();
+                            if (!s.alive) this.onEntityKilled(s);
+                            break;
+                        }
+                    }
+                    if (!b.alive) continue;
+                    if (this.player && this.player.alive && !this.invulnerable) {
+                        if (bPos.distanceTo(this.player.group.position) < 2.5) {
+                            this.player.takeDamage(15);
+                            b.dispose();
+                        }
+                    }
+                }
+            }
         }
     },
 
@@ -654,6 +695,7 @@ const Game = {
         this.enemies.forEach(e => e.dispose());
         this.enemies = [];
         BulletManager.clear();
+        if (typeof SoldierBulletManager !== 'undefined') SoldierBulletManager.clear();
         ExplosionManager.clear();
         SoldierManager.clear();
         PickupManager.clear();

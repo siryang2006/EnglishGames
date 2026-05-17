@@ -12,6 +12,15 @@
   "devDependencies": {
     "@playwright/test": "^1.49.0"
   },
-  "keywords": ["three.js", "game", "english", "tank", "education"],
-  "license": "MIT"
+  "keywords": [
+    "three.js",
+    "game",
+    "english",
+    "tank",
+    "education"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.184.0"
+  }
 }

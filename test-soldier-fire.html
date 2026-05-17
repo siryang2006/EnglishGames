@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>测试士兵射击</title>
+<style>
+body{margin:0;overflow:hidden;font-family:monospace}
+#info{position:absolute;top:10px;left:10px;color:#fff;background:rgba(0,0,0,0.7);padding:10px;font-size:14px;z-index:10;white-space:pre-line}
+</style>
+</head>
+<body>
+<div id="info">加载中...</div>
+<script src="js/three.min.js?t=1"></script>
+<script src="js/GLTFLoader.js?t=1"></script>
+<script>
+window.WordManager = { getRandomWord: function() { return { en: 'TEST', zh: '测试', phonetic: '/test/' }; } };
+</script>
+<script src="js/bullet.js?t=1"></script>
+<script src="js/bullet-soldier.js?t=20"></script>
+<script src="js/soldier.js?t=20"></script>
+<script>
+var info = document.getElementById('info');
+function log(t) { info.textContent = info.textContent + '\n' + t; console.log(t); }
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x334466);
+var camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 500);
+camera.position.set(0, 15, 25); camera.lookAt(0, 0, 0);
+var renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0x404060));
+var dl = new THREE.DirectionalLight(0xffffff, 1);
+dl.position.set(5, 15, 10); scene.add(dl);
+scene.add(new THREE.GridHelper(60, 20));
+var g = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshPhongMaterial({ color: 0x556655, side: THREE.DoubleSide }));
+g.rotation.x = -Math.PI/2; g.position.y = -0.01; scene.add(g);
+
+log('protocol: ' + window.location.protocol);
+log('SoldierManager type: ' + typeof SoldierManager);
+log('getPlayerSoldiers: ' + typeof SoldierManager.getPlayerSoldiers);
+
+SoldierManager.init(scene);
+SoldierManager.spawnFriendly(1);
+SoldierManager.spawnEnemy(1);
+log('soldiers count: ' + SoldierManager.soldiers.length);
+
+var sf = null, se = null;
+try {
+  sf = SoldierManager.soldiers.find(function(s) { return s.isPlayerTeam; });
+  se = SoldierManager.soldiers.find(function(s) { return !s.isPlayerTeam; });
+  if (sf) { sf.group.position.set(-10, 0, 0); sf.patrolCenter.set(-10, 0, 0); }
+  if (se) { se.group.position.set(10, 0, 0); se.patrolCenter.set(10, 0, 0); }
+} catch(e) { log('setup err: ' + e.message); }
+log('friendly: ' + (sf ? 'ok' : 'null') + ' enemy: ' + (se ? 'ok' : 'null'));
+
+var bulletLog = [];
+var origFire = SoldierBulletManager.fire;
+SoldierBulletManager.fire = function(sc, pos, dir, isP) {
+  origFire.call(SoldierBulletManager, sc, pos, dir, isP);
+  bulletLog.push(isP ? 'F' : 'E');
+};
+
+var lastLog = 0;
+function animate(t) {
+  requestAnimationFrame(animate);
+  var dt = Math.min(1/60, 0.05);
+  try { SoldierManager.update(dt); } catch(e) { log('update err: ' + e.message); }
+  try { SoldierBulletManager.update(dt); } catch(e) { log('bullet err: ' + e.message); }
+  renderer.render(scene, camera);
+  if (t - lastLog > 2000) {
+    lastLog = t;
+    if (sf && se) {
+      var d = sf.group.position.distanceTo(se.group.position);
+      log('dist=' + d.toFixed(1) + ' hp:' + sf.health + '/' + se.health + ' alive:' + sf.alive + '/' + se.alive);
+      log('bullets: ' + bulletLog.join(''));
+      if (sf.usingGltf) log('F gltf anims: ' + sf.getAnimationNames().join(','));
+      if (se.usingGltf) log('E gltf anims: ' + se.getAnimationNames().join(','));
+    } else {
+      log('soldiers! count=' + SoldierManager.soldiers.length + ' sf=' + (sf?'ok':'null') + ' se=' + (se?'ok':'null'));
+      SoldierManager.soldiers.forEach(function(s,i) {
+        log('  ['+i+'] isPlayerTeam='+s.isPlayerTeam+' alive='+s.alive+' hp='+s.health);
+      });
+    }
+  }
+}
+animate(0);
+</script>
+</body>
+</html>

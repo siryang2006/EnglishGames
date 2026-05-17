@@ -28,7 +28,7 @@ const InputManager = {
         document.addEventListener('contextmenu', (e) => e.preventDefault());
 
         document.addEventListener('mousemove', (e) => {
-            // 只有在 Pointer Lock 激活时才能正确获取 movementX/movementY
+            if (this.rightMouseDown) e.preventDefault();
             if (this.locked) {
                 this.mouse.dx += e.movementX || 0;
                 this.mouse.dy += e.movementY || 0;
