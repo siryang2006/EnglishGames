@@ -39,20 +39,19 @@ const Game = {
             }
         }
 
-        // if (typeof ModelLoader !== 'undefined') {
-        //     try {
-        //         ModelLoader.load(GameScene.scene, ModelConfig, () => {
-        //             console.log('All models loaded!');
-        //             window.allModelsReady = true;
-        //         });
-        //     } catch(e) {
-        //         console.warn('ModelLoader exception:', e.message);
-        //     }
-        // }
+        if (typeof ModelLoader !== 'undefined') {
+            try {
+                ModelLoader.load(GameScene.scene, ModelConfig, () => {
+                    console.log('All models loaded!');
+                    window.allModelsReady = true;
+                });
+            } catch(e) {
+                console.warn('ModelLoader exception:', e.message);
+            }
+        }
     },
 
     start() {
-        // 等待坦克模型加载完成
         if (typeof TankGLTFLoader !== 'undefined' && TankGLTFLoader.loading) {
             console.log('Waiting for tank model to load...');
             setTimeout(() => this.start(), 100);

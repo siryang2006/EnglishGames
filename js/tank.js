@@ -441,7 +441,7 @@ class Tank {
         const texture = new THREE.CanvasTexture(canvas);
         const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
         this.wordSprite = new THREE.Sprite(mat);
-        this.wordSprite.scale.set(7, 1.75, 1);
+        this.wordSprite.scale.set(12, 3, 1);
         this.wordSprite.position.y = 5.5;
         this.group.add(this.wordSprite);
         this.drawLetterLabel();

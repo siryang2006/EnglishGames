@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>测试 Soldier 类</title>
+<style>
+body { margin:0; overflow:hidden; }
+#info { position:absolute; top:10px; left:10px; color:#fff; background:rgba(0,0,0,0.7); padding:10px; font-size:14px; z-index:10; }
+</style></head>
+<body>
+<div id="info">测试 Soldier 类</div>
+<script src="js/three.min.js"></script>
+<script src="js/GLTFLoader.js"></script>
+<script src="js/soldier.js"></script>
+<script>
+const info = document.getElementById('info');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x444466);
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 500);
+camera.position.set(0, 3, 10); camera.lookAt(0, 1, 0);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+new THREE.AmbientLight(0x404060, scene.add.bind(scene));
+const dl = new THREE.DirectionalLight(0xffffff, 1);
+dl.position.set(5, 10, 7); scene.add(dl);
+new THREE.GridHelper(20, 20, scene.add.bind(scene));
+
+// 创建士兵
+const s1 = new Soldier(scene, false); // 敌兵
+s1.group.position.set(-3, 0, 0);
+const s2 = new Soldier(scene, true);  // 友兵
+s2.group.position.set(3, 0, 0);
+
+info.innerHTML = '敌兵 group children: ' + s1.group.children.length + '<br>友兵 group children: ' + s2.group.children.length;
+
+setTimeout(() => {
+    info.innerHTML += '<br>--- 3秒后 ---<br>敌兵 usingGltf: ' + s1.usingGltf + ', alive: ' + s1.alive;
+    info.innerHTML += '<br>敌兵 health: ' + s1.health + ', bar: ' + (s1.healthBar ? 'yes' : 'no') + ', word: ' + (s1.word ? s1.word.en : 'none');
+    // 测试 takeDamage
+    s1.takeDamage(10);
+    info.innerHTML += '<br>敌兵受伤后 health: ' + s1.health;
+}, 3000);
+
+function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

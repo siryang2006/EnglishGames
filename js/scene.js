@@ -471,12 +471,9 @@ init() {
         this.ships = [];
         this.obstacles = [];
 
-        // Environment objects disabled
-        // try { this.createPalmTrees(); } catch(e) { console.warn('createPalmTrees failed:', e.message); }
-        // try { this.createRocks(); } catch(e) { console.warn('createRocks failed:', e.message); }
-        // try { this.createBeachHuts(); } catch(e) { console.warn('createBeachHuts failed:', e.message); }
-        // try { this.createBarrels(); } catch(e) { console.warn('createBarrels failed:', e.message); }
-        // try { this.createShips(); } catch(e) { console.warn('createShips failed:', e.message); }
+        // Environment objects
+        try { this.createBarrels(); } catch(e) { console.warn('createBarrels failed:', e.message); }
+        try { this.createBunkers(); } catch(e) { console.warn('createBunkers failed:', e.message); }
     },
 
     createPalmTrees() {
@@ -707,6 +704,41 @@ init() {
             barrelData.updateLetterLabel = function() { this._drawLabel(this.word.en); };
             this.barrels.push(barrelData);
             this.obstacles.push(barrelData);
+        });
+    },
+
+    createBunkers() {
+        this.bunkers = [];
+        const bunkerMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.8, metalness: 0.2 });
+        const positions = [
+            {x: 20, z: 10}, {x: -25, z: 15}, {x: 30, z: -5},
+            {x: -15, z: -20}, {x: 40, z: 25}, {x: -35, z: -10}
+        ];
+        positions.forEach(p => {
+            const group = new THREE.Group();
+            const base = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5, 2.5), bunkerMat);
+            base.position.y = 0.75;
+            base.castShadow = true;
+            base.receiveShadow = true;
+            group.add(base);
+            const top = new THREE.Mesh(new THREE.BoxGeometry(2, 0.8, 1.5), bunkerMat);
+            top.position.set(0, 1.9, 0);
+            top.castShadow = true;
+            group.add(top);
+            group.position.set(p.x, 0, p.z);
+            this.scene.add(group);
+            const bunkerData = {
+                group, health: 80, alive: true,
+                position: new THREE.Vector3(p.x, 0, p.z), radius: 2.0
+            };
+            const wordLabel = this.createWordLabel(WordManager.getRandomWord(), 3.5);
+            group.add(wordLabel.sprite);
+            bunkerData.word = wordLabel.word;
+            bunkerData.letter = wordLabel.word.en;
+            bunkerData._drawLabel = wordLabel.drawLabel;
+            bunkerData.updateLetterLabel = function() { this._drawLabel(this.word.en); };
+            this.bunkers.push(bunkerData);
+            this.obstacles.push(bunkerData);
         });
     },
 

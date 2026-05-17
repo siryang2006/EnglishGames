@@ -2,13 +2,7 @@
 const ModelConfig = {
     // 模型文件路径
     paths: {
-        // All models disabled
-        // ground: 'models/demo_map_tank_vs_tank.glb',
-        // ocean: 'models/low_poly_ocean.glb',
-        // rock: 'models/free_low_poly_style_rock_pack.glb',
-        // soldier: 'models/catfish_mech_low-poly_animated.glb',
-        // animal: 'models/toon_horse_with_saddle_rigged_animated.glb',
-        // tank: 'models/m1_abrams.glb'
+        soldier_enemy: 'models/soldier_enemy.glb',
     },
     
     // 模型缩放比例

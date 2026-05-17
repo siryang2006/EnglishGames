@@ -29,25 +29,19 @@ var ModelLoader = (function() {
         get totalModels() { return _totalModels; },
 
         load: function(scene, config, onComplete) {
-            console.log('ModelLoader: disabled');
-            _loaded = true;
-            if (onComplete) onComplete();
-            return;
-            
             if (_loaded) {
                 if (onComplete) onComplete();
                 return;
             }
 
             if (window.location.protocol === 'file:') {
-                console.log('ModelLoader: using procedural models (file:// protocol)');
+                console.log('ModelLoader: file:// protocol, completing immediately');
                 _loaded = true;
                 if (onComplete) onComplete();
                 return;
             }
 
             var loader = new THREE.GLTFLoader();
-            var self = this;
             var paths = Object.entries(config.paths);
             _totalModels = paths.length;
 

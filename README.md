@@ -23,28 +23,75 @@
 | 地面 | `demo_map_tank_vs_tank.glb` | 坦克对战地图地形 |
 | 海洋 | `low_poly_ocean.glb` | 低多边形海洋 |
 | 岩石 | `free_low_poly_style_rock_pack.glb` | 障碍物石头 |
-| 士兵 | `catfish_mech_low-poly_animated.glb` | 机械人（有行走动画） |
+| 士兵 | `soldier.glb` | 士兵模型 |
 | 动物 | `toon_horse_with_saddle_rigged_animated.glb` | 马（有4种动画） |
 | 坦克 | `m1_abrams.glb` | M1 Abrams 坦克 |
 
-### 坦克模型方向说明
+### 模型下载
 
-**重要**: m1_abrams.glb 模型的方向定义:
-- 炮口方向: **-X 方向** (向左)
-- 前进方向: 与炮口一致 (沿 -X 方向)
-- 旋转: A键左转，D键右转
+**士兵模型来源 (Sketchfab)**:
+- https://sketchfab.com/3d-models/stylized-sci-fi-soldier-animated-9e19e517429c4077b800273890186456
+- 作者: Jungle Jim (CC Attribution)
+- 下载后重命名为 `soldier.glb` 放入 `models/` 目录
 
-代码绑定关系 (`js/tank.js`):
+**掩体模型来源 (Sketchfab)**:
+- Vietnam War Bunker Small: https://sketchfab.com/3d-models/vietnam-war-base-camp-bunker-small-fad2adfb9f874a2684bdf1de95b3dfe3
+- 作者: Kevin S. Tran (CC Attribution)
+- 下载后重命名为 `bunker.glb` 放入 `models/` 目录
+
+**友军士兵模型来源 (Sketchfab)**:
+- WW2 Allied Soldier: https://sketchfab.com/3d-models/ww2-allied-soldier-low-poly-character-army-70d84d8794074d09aeaebe7d053f2dfa
+- 作者: Zack (CC Attribution)
+- 下载后重命名为 `soldier_friendly.glb` 放入 `models/` 目录
+
+**敌军士兵模型来源 (Sketchfab)**:
+- Stylized Sci-Fi Soldier: https://sketchfab.com/3d-models/stylized-sci-fi-soldier-animated-9e19e517429c4077b800273890186456
+- 作者: Jungle Jim (CC Attribution)
+- 下载后重命名为 `soldier_enemy.glb` 放入 `models/` 目录
+
+### 坦克模型方向绑定规则
+
+**核心原则：所有方向必须统一绑定到炮管朝向。**
+
+m1_abrams.glb 模型的炮管指向 **-X 方向**，因此：
+
+| 方向 | 向量 | 说明 |
+|------|------|------|
+| 炮口方向 | `(-1, 0, 0)` | 子弹发射方向 |
+| 炮口位置 | `(-1, 0, 0) * 炮管长度` | 子弹出生点 |
+| 前进方向 | `(-1, 0, 0)` 经坦克旋转四元数变换 | WASD 移动 |
+| 后退方向 | `(+1, 0, 0)` 经坦克旋转四元数变换 | S 键移动 |
+
+**如果换模型，必须先确认新模型的炮管指向，再统一修改以下所有位置：**
+
+#### `js/tank.js`
 ```javascript
-// 炮口方向
-getBarrelTip() / getBarrelDirection(): new THREE.Vector3(-1, 0, 0)
+getBarrelTip()    → barrelLocalDir = new THREE.Vector3(-1, 0, 0)
+getBarrelDirection() → barrelLocalDir = new THREE.Vector3(-1, 0, 0)
+```
+- `getBarrelDirection()` 返回 `barrelLocalDir.clone().applyQuaternion(this.group.quaternion)`
+- `getBarrelTip()` 返回 `barrelLocalDir.clone().multiplyScalar(length).add(炮管根部世界位置)`
+
+#### `js/main.js`
+```javascript
+// WASD 移动（三处）
+const forwardDir = new THREE.Vector3(-1, 0, 0).applyQuaternion(this.player.group.quaternion);
+// S键后退
+const backDir = new THREE.Vector3(1, 0, 0).applyQuaternion(this.player.group.quaternion);
+// 子弹方向
+const dir = this.player.getBarrelDirection();
 ```
 
-代码绑定关系 (`js/main.js`):
+#### `js/bullet.js`
 ```javascript
-// 前进方向
-const forwardDir = new THREE.Vector3(-1, 0, 0).applyQuaternion(p.group.quaternion);
+// 子弹飞行方向来自坦克的 getBarrelDirection()
+this.velocity = dir.clone().multiplyScalar(speed);
 ```
+
+**约定**:
+- 模型本身的 rotation 不可修改（保持 GLTF 原始朝向）
+- 所有方向偏差通过代码中的方向向量统一修正
+- A 键左转（+Y 旋转），D 键右转（-Y 旋转）
 
 ### 修改模型
 
@@ -128,6 +175,28 @@ js/
 2. **模型位置调整**：根据包围盒自动调整y位置贴地
 3. **模块化重构**：配置与加载分离
 4. **兼容性**：保留旧API接口
+
+### Soldier 模型加载机制
+
+1. **加载方式**：每个 Soldier 实例直接使用 GLTFLoader 加载模型（不经过 ModelLoader 共享缓存）
+2. **协议分支**：
+   - `http://` → 异步加载 GLTF 模型到 group
+   - `file://` → 直接使用 buildPrimitiveModel() 程序化生成
+3. **必备方法**：SoldierManager 必须包含以下方法，否则 main.js 会报错：
+   - `getPlayerSoldiers()` → 存活友军数组
+   - `getEnemySoldiers()` → 存活敌军数组
+   - `update(dt)` → 更新所有 soldier AI
+   - `clear()` → 清理场景
+4. **Soldier 类必备方法**：
+   - `buildModel()` / `loadGLTFModel()` / `buildPrimitiveModel()`
+   - `takeDamage(amount)` → 扣血、更新血条、死亡标记
+   - `updateAI(dt)` → 巡逻逻辑
+   - `createHealthBar()` / `updateHealthBar()`
+   - `createLetterLabel()` / `drawLetterLabel()`（仅敌军显示单词）
+5. **路径**：
+   - 友军: `models/soldier_friendly.glb`（默认不存在，fallback 到程序化模型）
+   - 敌军: `models/soldier_enemy.glb`（已下载，Sketchfab 导出，需 Z-up→Y-up 转换）
+6. **调试**：`test-model.html` 可独立测试 Soldier 类加载
 
 ## 操作说明
 

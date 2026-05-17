@@ -16,11 +16,10 @@ class Soldier {
         this.mixer = null;
         this.currentAction = null;
 
-        this.usingGltf = false;
         this.buildModel();
         this.createHealthBar();
         if (!isPlayerTeam) {
-            this.word = WordManager.getRandomWord();
+            this.word = window.WordManager && WordManager.getRandomWord ? WordManager.getRandomWord() : { en: 'TEST' };
             this.letter = this.word.en;
             this.createLetterLabel();
         }
@@ -28,45 +27,52 @@ class Soldier {
     }
 
     buildModel() {
-        // No model - disabled
-    }
-
-    loadGLTFModel() {
-        // Disabled
-        return;
-        const model = ModelLoader.getSoldier();
-        if (model) {
-            // 计算模型实际大小，自动调整缩放
-            const box = new THREE.Box3().setFromObject(model);
-            const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y, size.z);
-            const targetSize = 2.0; // 目标高度约 2 米
-            const scale = targetSize / maxDim;
-
-            // Setup animation mixer
-            if (ModelLoader.soldierAnimations && ModelLoader.soldierAnimations.length > 0) {
-                this.mixer = new THREE.AnimationMixer(model);
-                // Play idle animation by default
-                const idleClip = ModelLoader.soldierAnimations.find(a =>
-                    a.name.toLowerCase().includes('idle') || a.name.toLowerCase().includes('stand')
-                ) || ModelLoader.soldierAnimations[0];
-                if (idleClip) {
-                    this.currentAction = this.mixer.clipAction(idleClip);
-                    this.currentAction.play();
-                }
-            }
-            model.scale.setScalar(scale);
-            model.rotation.y = Math.PI;
-            this.group.add(model);
-            this.usingGltf = true;
-            console.log('Soldier: using GLTF model, scale:', scale.toFixed(3), 'size:', maxDim.toFixed(2));
+        // HTTP protocol: GLTF model, file:// protocol: procedural fallback
+        if (window.location.protocol !== 'file:') {
+            this.loadGLTFModel();
         } else {
             this.buildPrimitiveModel();
         }
     }
 
+    loadGLTFModel() {
+        const loader = new THREE.GLTFLoader();
+        const path = this.isPlayerTeam ? 'models/soldier_friendly.glb' : 'models/soldier_enemy.glb';
+        console.log('Soldier loading GLTF:', path, 'team:', this.isPlayerTeam ? 'friendly' : 'enemy');
+        loader.load(path, (gltf) => {
+            const m = gltf.scene;
+            console.log('Soldier GLTF loaded:', path, 'nodes:', m.children.length);
+
+            const box3 = new THREE.Box3().setFromObject(m);
+            const size = box3.getSize(new THREE.Vector3());
+            const scale = 1.8 / size.y;
+            m.scale.setScalar(scale);
+
+            const sb = new THREE.Box3().setFromObject(m);
+            const c = sb.getCenter(new THREE.Vector3());
+            m.position.set(-c.x, -sb.min.y, -c.z);
+
+            if (gltf.animations && gltf.animations.length > 0) {
+                this.mixer = new THREE.AnimationMixer(m);
+                const idleClip = gltf.animations.find(a =>
+                    a.name.toLowerCase().includes('idle') || a.name.toLowerCase().includes('stand')
+                ) || gltf.animations[0];
+                if (idleClip) {
+                    this.currentAction = this.mixer.clipAction(idleClip);
+                    this.currentAction.play();
+                }
+            }
+
+            this.group.add(m);
+            this.usingGltf = true;
+            console.log('Soldier GLTF added to group');
+        }, null, (err) => {
+            console.error('Soldier GLTF load error:', path, err.message || err);
+            this.buildPrimitiveModel();
+        });
+    }
+
     buildPrimitiveModel() {
-        
         const skinColor = 0xddaa77;
         const uniformColor = this.isPlayerTeam ? 0x3a6b3a : 0x6b2020;
         const bootColor = 0x332211;
@@ -165,12 +171,9 @@ class Soldier {
     updateAI(dt) {
         if (!this.alive) return;
 
-        // Update animation mixer
         if (this.mixer) {
             this.mixer.update(dt);
         }
-
-        // No GLTF upgrade
 
         this.patrolTimer -= dt;
         if (this.patrolTimer <= 0) {
@@ -263,7 +266,6 @@ const SoldierManager = {
             const dist = 5 + Math.random() * 3;
             s.group.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
             s.patrolCenter.copy(s.group.position);
-            console.log('Spawned friendly soldier at', s.group.position.x.toFixed(1), s.group.position.z.toFixed(1));
             this.soldiers.push(s);
         }
     },
@@ -275,7 +277,6 @@ const SoldierManager = {
             const dist = 35 + Math.random() * 30;
             s.group.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
             s.patrolCenter.copy(s.group.position);
-            console.log('Spawned enemy soldier at', s.group.position.x.toFixed(1), s.group.position.z.toFixed(1));
             this.soldiers.push(s);
         }
     },
